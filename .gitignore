@@ -133,3 +133,5 @@ dmypy.json
 # data
 */*.log
 **/**.log
+**/**.csv
+*/*.csv
