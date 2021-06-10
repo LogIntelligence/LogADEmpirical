@@ -32,10 +32,12 @@ class Predicter():
         self.model_dir = options['model_dir']
         self.vocab_path = options["vocab_path"]
         self.model_path = options['model_path']
+        self.model_name = options['model_name']
 
         self.device = options['device']
         self.window_size = options['window_size']
         self.min_len = options["min_len"]
+        self.history_size = options['history_size']
 
         self.is_logkey = options["is_logkey"]
         self.is_time = options["is_time"]
@@ -44,7 +46,7 @@ class Predicter():
 
         self.input_size = options["input_size"]
         self.hidden_size = options["hidden_size"]
-        self.embedding_dim = options["embedding_sim"]
+        self.embedding_dim = options["embedding_dim"]
         self.num_layers = options["num_layers"]
 
         self.batch_size = options['batch_size']
@@ -140,7 +142,7 @@ class Predicter():
 
                 logkeys, times = [logkey.tolist()], [tim.tolist()] # add next axis
 
-                logs, labels = sliding_window((logkeys, times), vocab, window_size=self.window_size, is_train=False)
+                logs, labels = sliding_window((logkeys, times), vocab, window_size=self.history_size, is_train=False)
                 dataset = log_dataset(logs=logs,
                                         labels=labels,
                                         seq=self.sequentials,

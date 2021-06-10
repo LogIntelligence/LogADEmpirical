@@ -20,7 +20,7 @@ def arg_parser():
     parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k", "bgl_2k"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
-    parser.add_argument("--output_dir", default="../output/", metavar="DIR", help="output directory")
+    parser.add_argument("--output_dir", default="./output/", metavar="DIR", help="output directory")
     parser.add_argument("--folder", default='bgl', metavar="DIR")
 
     parser.add_argument('--log_file', help="log file name")
@@ -80,10 +80,11 @@ def arg_parser():
 
     # deeplog and loganomaly
     parser.add_argument("--sample", default="sliding_window", help="split sequences by sliding window")
+    parser.add_argument("--history_size", default=10, type=int, help="window size for deeplog and log anomaly")
 
     # Features
     parser.add_argument("--sequentials", default=True, help="sequences of logkeys")
-    parser.add_argument("--quantitatives", default=False, help="logkey count vector")
+    parser.add_argument("--quantitatives", default=True, help="logkey count vector")
     parser.add_argument("--semantics", default=False, help="logkey embedding with semantics vectors")
     parser.add_argument("--parameters", default=False, help="include paramters in logs after parsing such time")
 
@@ -147,8 +148,8 @@ def main():
     options = vars(args)
     options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
     options["train_vocab"] = options["output_dir"] + "train"
-    options["vocab_path"] = options["output_dir"] + "vocab.pkl"  # pickle file
-    options["model_path"] = options["model_dir"] + "best_model.pth"
+    options["vocab_path"] = options["data_dir"] + "vocab.pkl"  # pickle file
+    options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
     options["scale_path"] = options["model_dir"] + "scale.pkl"
 
     if not os.path.exists(options["model_dir"]):

@@ -31,6 +31,7 @@ class Trainer():
 
         self.window_size = options['window_size']
         self.min_len = options["min_len"]
+        self.history_size = options['history_size']
 
         self.input_size = options["input_size"]
         self.hidden_size = options["hidden_size"]
@@ -76,16 +77,16 @@ class Trainer():
 
             train_logs, train_labels = sliding_window((train_logkeys, train_times),
                                                       vocab=vocab,
-                                                      window_size=self.window_size,
+                                                      window_size=self.history_size,
                                                       )
 
             val_logs, val_labels = sliding_window((valid_logkeys, valid_times),
                                                   vocab=vocab,
-                                                  window_size=self.window_size,
+                                                  window_size=self.history_size,
                                                   )
             del train_logkeys, train_times
             del valid_logkeys, valid_times
-            del vocab
+            # del vocab
             gc.collect()
 
         elif self.sample == 'session_window':
@@ -283,7 +284,7 @@ class Trainer():
 
                 if self.is_time:
                     error = output1.detach().clone().cpu().numpy() - label1.detach().clone().cpu().numpy()
-                    errors = np.concatenate((errors,error));
+                    errors = np.concatenate((errors,error))
 
                 total_losses += float(loss)
         print("\nValidation loss:", total_losses / num_batch)
@@ -297,7 +298,7 @@ class Trainer():
 
             self.save_checkpoint(epoch,
                                  save_optimizer=False,
-                                 suffix="bestloss")
+                                 suffix=self.model_name)
             self.epochs_no_improve = 0
         else:
             self.epochs_no_improve += 1

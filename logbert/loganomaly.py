@@ -6,7 +6,7 @@ from logbert.logdeep.dataset.vocab import Vocab
 
 
 def run_loganomaly(options):
-    if not os.path.exists(options["vocab_apth"]):
+    if not os.path.exists(options["vocab_path"]):
         with open(options["train_vocab"], 'r') as f:
             logs = f.readlines()
         vocab = Vocab(logs)

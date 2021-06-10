@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from logbert.logdeep.dataset.session import sliding_window, session_window
+import shutil
 
 # tqdm.pandas()
 # pd.options.mode.chained_assignment = None  # default='warn'
@@ -122,6 +123,8 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
 
     train = df_normal[:train_len]
     _file_generator(os.path.join(output_dir,'train'), train, ["EventId"])
+    shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
+
     print("training size {}".format(train_len))
 
 
@@ -130,6 +133,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     ###############
     test_normal = df_normal[train_len:]
     _file_generator(os.path.join(output_dir, 'test_normal'), test_normal, ["EventId"])
+    shutil.copyfile(os.path.join(output_dir, 'test_normal'), os.path.join(data_dir, 'test_normal'))
     print("test normal size {}".format(normal_len - train_len))
 
     # del df_normal
@@ -142,5 +146,6 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     #################
     df_abnormal = window_df[window_df["Label"] == 1]
     _file_generator(os.path.join(output_dir,'test_abnormal'), df_abnormal, ["EventId"])
+    shutil.copyfile(os.path.join(output_dir, 'test_abnormal'), os.path.join(data_dir, 'test_abnormal'))
     print('test abnormal size {}'.format(len(df_abnormal)))
 
