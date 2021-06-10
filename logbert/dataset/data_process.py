@@ -91,7 +91,11 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
         df['timestamp'] = df["datetime"].values.astype(np.int64) // 10 ** 9
         df['deltaT'] = df['datetime'].diff() / np.timedelta64(1, 's')
         df['deltaT'].fillna(0)
-        window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]],
+        n_train = int(len(df) * train_size)
+        print(n_train, len(df))
+        train_window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]].iloc[:n_train,:],
+                                   para={"window_size": float(window_size)*60, "step_size": float(step_size) * 60})
+        test_window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]].iloc[n_train:,:].reset_index(drop=True),
                                    para={"window_size": float(window_size)*60, "step_size": float(step_size) * 60})
 
     elif window_type == "session":
@@ -115,26 +119,29 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     #########
     # Train #
     #########
-    df_normal = window_df[window_df["Label"] == 0]
+    df_normal = train_window_df[train_window_df["Label"] == 0]
     # shuffle normal data
-    df_normal = df_normal.sample(frac=1).reset_index(drop=True)
-    normal_len = len(df_normal)
-    train_len = int(normal_len * train_size) if isinstance(train_size, float) else train_size
+    # df_normal = df_normal.sample(frac=1).reset_index(drop=True)
+    # normal_len = len(df_normal)
+    # train_len = int(normal_len * train_size) if isinstance(train_size, float) else train_size
 
-    train = df_normal[:train_len]
+    # train = df_normal[:train_len]
+    train = df_normal
     _file_generator(os.path.join(output_dir,'train'), train, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
 
-    print("training size {}".format(train_len))
+    print("training size {}".format(len(train)))
 
 
     ###############
     # Test Normal #
     ###############
-    test_normal = df_normal[train_len:]
+    # test_normal = df_normal[train_len:]
+    test_normal = test_window_df[test_window_df["Label"] == 0]
     _file_generator(os.path.join(output_dir, 'test_normal'), test_normal, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, 'test_normal'), os.path.join(data_dir, 'test_normal'))
-    print("test normal size {}".format(normal_len - train_len))
+    print("test normal size {}".format(len(test_normal)))
+
 
     # del df_normal
     # del train
@@ -144,7 +151,8 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     #################
     # Test Abnormal #
     #################
-    df_abnormal = window_df[window_df["Label"] == 1]
+    # df_abnormal = window_df[window_df["Label"] == 1]
+    df_abnormal = test_window_df[test_window_df["Label"] == 1]
     _file_generator(os.path.join(output_dir,'test_abnormal'), df_abnormal, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, 'test_abnormal'), os.path.join(data_dir, 'test_abnormal'))
     print('test abnormal size {}'.format(len(df_abnormal)))
