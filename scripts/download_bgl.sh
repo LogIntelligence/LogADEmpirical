@@ -10,5 +10,5 @@ fi
 
 cd $file
 zipfile=BGL.tar.gz?download=1
-wget https://zenodo.org/record/3227177/files/${zipfile} -P $file
+wget https://zenodo.org/record/3227177/files/${zipfile}
 tar -xvzf $zipfile
