@@ -162,10 +162,10 @@ def main():
         run_deeplog(options)
     elif args.model_name == "loganomaly":
         run_loganomaly(options)
+    elif args.model_name == "robustlog":
+        pass
     elif args.model_name == "baseline":
         pass
-    elif args.model_name == "robustlog":
-        run
     else:
         raise NotImplementedError(f"Model {args.model_name} is not defined")
 

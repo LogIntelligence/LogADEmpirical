@@ -120,6 +120,8 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
     num_sessions = 0
     num_classes = len(vocab)
 
+    duplicate_seq = {}
+
     for line, params in zip(*data_iter):
         if num_sessions % 1000 == 0:
             print("processed %s lines"%num_sessions, end='\r')
@@ -133,6 +135,13 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
         line = line + [vocab.pad_index] * padding_size
 
         for i in range(session_len - window_size):
+            seq = line[i: i + window_size + 1]
+            seq = map(lambda k: str(k), seq)
+            seq = " ".join(seq)
+            if seq in duplicate_seq.keys():
+                continue
+
+            duplicate_seq[seq] = 1
             Parameter_pattern = params[i:i + window_size]
             Sequential_pattern = line[i:i + window_size]
             Semantic_pattern = []

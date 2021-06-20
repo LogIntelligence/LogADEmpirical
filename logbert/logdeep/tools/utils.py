@@ -60,9 +60,9 @@ def plot_train_valid_loss(save_dir):
     sns.lineplot(x="epoch",y="loss" , data = train_loss, label="train loss")
     sns.lineplot(x="epoch",y="loss" , data = valid_loss, label="valid loss")
     plt.title("epoch vs train loss vs valid loss")
-    plt.legend
+    # plt.legend
     plt.savefig(save_dir+"train_valid_loss.png")
-    plt.show()
+    # plt.show()
     print("plot done")
 
 
