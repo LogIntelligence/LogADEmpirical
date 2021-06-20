@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from logbert.logdeep.dataset.session import sliding_window, session_window
 import shutil
+import pickle
 
 # tqdm.pandas()
 # pd.options.mode.chained_assignment = None  # default='warn'
@@ -161,3 +162,77 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     shutil.copyfile(os.path.join(output_dir, 'test_abnormal'), os.path.join(data_dir, 'test_abnormal'))
     print('test abnormal size {}'.format(len(df_abnormal)))
 
+
+def _file_generator2(filename, df):
+    with open(filename, 'w') as f:
+        for _, seq in enumerate(df):
+            f.write(" ".join(seq) + "\n")
+
+def process_instance(data_dir, output_dir, train_file, test_file):
+    """
+    creating log sequences by sliding window
+    :param data_dir:
+    :param output_dir:
+    :param log_file:
+    :param window_size:
+    :param step_size:
+    :param train_size:
+    :return:
+    """
+    ########
+    # count anomaly
+    ########
+    # _count_anomaly(data_dir + log_file)
+
+    ##################
+    # Transformation #
+    ##################
+
+    with open(os.path.join(data_dir,train_file), mode='rb') as f:
+        train = pickle.load(f)
+
+    with open(os.path.join(data_dir, test_file), mode='rb') as f:
+        test = pickle.load(f)
+
+    if not os.path.exists(output_dir):
+        print(f"creating {output_dir}")
+        os.mkdir(output_dir)
+
+    #########
+    # Train #
+    #########
+    train_normal = [x.src_event_ids for x in train if not x.is_anomaly]
+    _file_generator2(os.path.join(output_dir,'train'), train_normal)
+    shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
+
+    train_abnormal = [x.src_event_ids for x in train if x.is_anomaly]
+    _file_generator2(os.path.join(output_dir, 'train_abnormal'), train_abnormal)
+    shutil.copyfile(os.path.join(output_dir, "train_abnormal"), os.path.join(data_dir, "train_abnormal"))
+
+    print("training size {}".format(len(train_normal)))
+
+
+    ###############
+    # Test Normal #
+    ###############
+    # test_normal = df_normal[train_len:]
+    test_normal = [x.src_event_ids for x in test if not x.is_anomaly]
+    _file_generator2(os.path.join(output_dir, 'test_normal'), test_normal)
+    shutil.copyfile(os.path.join(output_dir, "test_normal"), os.path.join(data_dir, "test_normal"))
+    print("test normal size {}".format(len(test_normal)))
+
+
+    # del df_normal
+    # del train
+    # del test_normal
+    # gc.collect()
+
+    #################
+    # Test Abnormal #
+    #################
+    # df_abnormal = window_df[window_df["Label"] == 1]
+
+    test_abnormal = [x.src_event_ids for x in test if x.is_anomaly]
+    _file_generator2(os.path.join(output_dir, 'test_abnormal'), test_abnormal)
+    shutil.copyfile(os.path.join(output_dir, "test_abnormal"), os.path.join(data_dir, "test_abnormal"))
+    print('test abnormal size {}'.format(len(test_abnormal)))

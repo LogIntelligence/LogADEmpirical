@@ -5,7 +5,7 @@ from logbert.logdeep.tools.utils import seed_everything, save_parameters
 from logbert.deeplog import run_deeplog
 from logbert.loganomaly import run_loganomaly
 from logbert.bert import run_logbert
-from logbert.dataset import process_dataset, parse_log, sample_raw_data
+from logbert.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
 sys.path.append("../../")
@@ -18,7 +18,8 @@ def arg_parser():
     parser = ArgumentParser()
     parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly"])
     parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
-                                                                                "bgl_2k", "tdb"])
+                                                                                "bgl_2k", "tdb", "spirit", "bo",
+                                                                                "bgl2"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
     parser.add_argument("--output_dir", default="./output/", metavar="DIR", help="output directory")
@@ -38,6 +39,9 @@ def arg_parser():
     parser.add_argument("--tau", default=0.5, type=float, help="the percentage of tokens matched to merge a log message")
 
     parser.add_argument("--is_process", action='store_true', help="if split train and test data")
+    parser.add_argument("--is_instance", action='store_true', help="if instances of log are available")
+    parser.add_argument("--train_file", default=None, help="train instances file name")
+    parser.add_argument("--test_file", default=None, help="test instances file name")
     parser.add_argument("--window_type", type=str, choices=["sliding", "session"], help="window for building log sequence")
     parser.add_argument('--window_size', default=5, type=float, help='window size(mins)')
     parser.add_argument('--step_size', default=1, type=float, help='step size(mins)')
@@ -107,19 +111,6 @@ def arg_parser():
 def main():
     parser = arg_parser()
     args = parser.parse_args()
-    # args = parser.parse_args('--data_dir ~/.dataset/ '
-    #                          '--output_dir ./output/ '
-    #                          '--folder bgl/ '
-    #                          '--dataset_name bgl_2k '
-    #                          '--log_file BGL_2k.log '
-    #                          '--model_name logbert '
-    #                          '--n_warm_up_epoch 2 '
-    #                          '--min_seq 2 '
-    #                          '--parser_type None '
-    #                          '--log_format Label,Id,Date,Code1,Time,Code2,Component1,Component2,Level,Content '
-    #                          '--window_type sliding '
-    #                          '--is_logkey '
-    #                          '--max_epoch 10'.split())
 
     args.data_dir = os.path.expanduser(args.data_dir + args.folder)
 
@@ -146,6 +137,10 @@ def main():
                         window_size=args.window_size, step_size=args.step_size,
                         train_size=args.train_size)
 
+    if args.is_instance:
+        process_instance(data_dir=args.data_dir, output_dir=args.output_dir, train_file=args.train_file,
+                         test_file=args.test_file)
+
     options = vars(args)
     options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
     options["train_vocab"] = options["output_dir"] + "train"
@@ -169,6 +164,8 @@ def main():
         run_loganomaly(options)
     elif args.model_name == "baseline":
         pass
+    elif args.model_name == "robustlog":
+        run
     else:
         raise NotImplementedError(f"Model {args.model_name} is not defined")
 
