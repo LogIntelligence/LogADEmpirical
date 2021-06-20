@@ -17,7 +17,8 @@ def arg_parser():
     """
     parser = ArgumentParser()
     parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly"])
-    parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k", "bgl_2k"])
+    parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
+                                                                                "bgl_2k", "tdb"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
     parser.add_argument("--output_dir", default="./output/", metavar="DIR", help="output directory")

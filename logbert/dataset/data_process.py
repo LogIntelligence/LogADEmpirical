@@ -127,8 +127,8 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
 
     # train = df_normal[:train_len]
     train = df_normal
-    _file_generator(os.path.join(output_dir,'train_normal'), train, ["EventId"])
-    shutil.copyfile(os.path.join(output_dir, "train_normal"), os.path.join(data_dir, "train_normal"))
+    _file_generator(os.path.join(output_dir,'train'), train, ["EventId"])
+    shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
 
     df_abnormal = train_window_df[train_window_df["Label"] == 1]
     _file_generator(os.path.join(output_dir, 'train_abnormal'), df_abnormal, ["EventId"])

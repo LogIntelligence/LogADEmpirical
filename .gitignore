@@ -2,6 +2,8 @@
 *.log
 .ipynb_checkpoints
 output/*
+dataset/*/
+dataset/**/
 
 # Editors
 .vscode/
