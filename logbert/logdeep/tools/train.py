@@ -18,7 +18,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from logbert.logdeep.dataset.log import log_dataset
 from logbert.logdeep.dataset.sample import sliding_window, session_window, split_features
 from logbert.logdeep.tools.utils import plot_train_valid_loss
-from logbert.logdeep.models.lstm import deeplog, loganomaly
+from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
 
 
 class Trainer():
@@ -69,7 +69,8 @@ class Trainer():
                                             scale_path=self.scale_path,
                                             min_len=self.min_len)
 
-            train_logkeys, valid_logkeys, train_times, valid_times = train_test_split(logkeys, times, test_size=self.valid_ratio)
+            train_logkeys, valid_logkeys, train_times, valid_times = train_test_split(logkeys, times,
+                                                                                      test_size=self.valid_ratio)
 
             print("Loading vocab")
             with open(self.vocab_path, 'rb') as f:
@@ -90,10 +91,9 @@ class Trainer():
             gc.collect()
 
         elif self.sample == 'session_window':
-            train_logs, train_labels = session_window(self.data_dir,
-                                                      datatype='train')
-            val_logs, val_labels = session_window(self.data_dir,
-                                                  datatype='val')
+            (train_logs, train_labels), (val_logs, val_labels) = session_window(self.data_dir,
+                                                                                datatype='train',
+                                                                                sample_ratio=self.train_ratio)
         else:
             raise NotImplementedError
 
@@ -131,14 +131,16 @@ class Trainer():
 
         if self.model_name == "deeplog":
             lstm_model = deeplog
-        else:
+        elif self.model == "loganomaly":
             lstm_model = loganomaly
+        else:
+            lstm_model = robustlog
 
         model_init = lstm_model(input_size=self.input_size,
-                        hidden_size=self.hidden_size,
-                        num_layers=self.num_layers,
-                        vocab_size=len(vocab),
-                        embedding_dim=self.embedding_dim)
+                                hidden_size=self.hidden_size,
+                                num_layers=self.num_layers,
+                                vocab_size=len(vocab),
+                                embedding_dim=self.embedding_dim)
         self.model = model_init.to(self.device)
 
         if options['optimizer'] == 'sgd':
@@ -284,7 +286,7 @@ class Trainer():
 
                 if self.is_time:
                     error = output1.detach().clone().cpu().numpy() - label1.detach().clone().cpu().numpy()
-                    errors = np.concatenate((errors,error))
+                    errors = np.concatenate((errors, error))
 
                 total_losses += float(loss)
         print("\nValidation loss:", total_losses / num_batch)

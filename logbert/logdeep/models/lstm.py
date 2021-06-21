@@ -43,14 +43,29 @@ class robustlog(nn.Module):
                             batch_first=True)
         self.fc = nn.Linear(hidden_size, num_keys)
 
+    def attention_net(self, lstm_output):
+        output_reshape = torch.Tensor.reshape(lstm_output,
+                                              [-1, self.hidden_size])
+        attn_tanh = torch.tanh(torch.mm(output_reshape, self.w_omega))
+        attn_hidden_layer = torch.mm(
+            attn_tanh, torch.Tensor.reshape(self.u_omega, [-1, 1]))
+        exps = torch.Tensor.reshape(torch.exp(attn_hidden_layer),
+                                    [-1, self.sequence_length])
+        alphas = exps / torch.Tensor.reshape(torch.sum(exps, 1), [-1, 1])
+        alphas_reshape = torch.Tensor.reshape(alphas,
+                                              [-1, self.sequence_length, 1])
+        state = lstm_output
+        attn_output = torch.sum(state * alphas_reshape, 1)
+        return attn_output
 
     def forward(self, features, device):
-        input0 = features[0]
+        input0 = features[2]
         h0 = torch.zeros(self.num_layers, input0.size(0),
                          self.hidden_size).to(device)
         c0 = torch.zeros(self.num_layers, input0.size(0),
                          self.hidden_size).to(device)
         out, _ = self.lstm(input0, (h0, c0))
+        out = self.attention_net(out)
         out = self.fc(out[:, -1, :])
         return out
 

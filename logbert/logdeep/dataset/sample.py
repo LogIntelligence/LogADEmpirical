@@ -4,6 +4,8 @@ import pickle
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import os
+from sklearn.model_selection import train_test_split
 
 def read_json(filename):
     with open(filename, 'r') as load_f:
@@ -15,7 +17,7 @@ def trp(l, n):
     """ Truncate or pad a list """
     r = l[:n]
     if len(r) < n:
-        r.extend(list([0]) * (n - len(r)))
+        r = list(['0']) * (n - len(r)) + r
     return r
 
 
@@ -169,8 +171,8 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
     return result_logs, labels
 
 
-def session_window(data_dir, datatype, sample_ratio=1):
-    event2semantic_vec = read_json(data_dir + 'hdfs/event2semantic_vec.json')
+def session_window(data_dir, datatype, train_ratio=1, e_name="", num_events=29):
+    event2semantic_vec = read_json(os.path.join(data_dir, e_name))
     result_logs = {}
     result_logs['Sequentials'] = []
     result_logs['Quantitatives'] = []
@@ -178,25 +180,37 @@ def session_window(data_dir, datatype, sample_ratio=1):
     labels = []
 
     if datatype == 'train':
-        data_dir += 'hdfs/robust_log_train.csv'
-    elif datatype == 'val':
-        data_dir += 'hdfs/robust_log_valid.csv'
+        data_dir += 'train'
+        f_normal = data_dir
+        f_abnormal = data_dir + "_abnormal"
     elif datatype == 'test':
-        data_dir += 'hdfs/robust_log_test.csv'
+        data_dir += 'test'
+        f_normal = data_dir + "_normal"
+        f_abnormal = data_dir + "_abnormal"
+    else:
+        raise NotImplementedError
+    x, y = [], []
+    with open(f_normal, mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            x.append(line.split())
+            y.append(0)
 
-    train_df = pd.read_csv(data_dir)
-    for i in tqdm(range(len(train_df))):
-        ori_seq = [
-            int(eventid) for eventid in train_df["Sequence"][i].split(' ')
-        ]
-        Sequential_pattern = trp(ori_seq, 50)
+    with open(f_abnormal, mode="r") as f:
+        for line in f.readlines():
+            line = line.strip()
+            x.append(line.split())
+            y.append(1)
+
+    for i, line in enumerate(x):
+        Sequential_pattern = trp(line, 100)
         Semantic_pattern = []
         for event in Sequential_pattern:
-            if event == 0:
+            if event == "0":
                 Semantic_pattern.append([-1] * 300)
             else:
-                Semantic_pattern.append(event2semantic_vec[str(event - 1)])
-        Quantitative_pattern = [0] * 29
+                Semantic_pattern.append(event2semantic_vec[event])
+        Quantitative_pattern = [0] * num_events
         log_counter = Counter(Sequential_pattern)
 
         for key in log_counter:
@@ -207,13 +221,13 @@ def session_window(data_dir, datatype, sample_ratio=1):
         result_logs['Sequentials'].append(Sequential_pattern)
         result_logs['Quantitatives'].append(Quantitative_pattern)
         result_logs['Semantics'].append(Semantic_pattern)
-        labels.append(int(train_df["label"][i]))
-
-    if sample_ratio != 1:
-        result_logs, labels = down_sample(result_logs, labels, sample_ratio)
-
-    # result_logs, labels = up_sample(result_logs, labels)
+        labels.append(y[i])
 
     print('Number of sessions({}): {}'.format(data_dir,
                                               len(result_logs['Semantics'])))
-    return result_logs, labels
+
+    if train_ratio != 1:
+        (train_x, train_y), (val_x, val_y) = train_test_split(result_logs, labels, test_size=train_ratio)
+        return (train_x, train_y), (val_x, val_y)
+    else:
+        return result_logs, labels

@@ -83,9 +83,10 @@ def arg_parser():
     parser.add_argument("--adam_beta2", default=0.999, type=float)
     parser.add_argument("--adam_weight_decay", default=0.00, type=float)
 
-    # deeplog and loganomaly
+    # deeplog, loganomaly & logrobust
     parser.add_argument("--sample", default="sliding_window", help="split sequences by sliding window")
     parser.add_argument("--history_size", default=10, type=int, help="window size for deeplog and log anomaly")
+    parser.add_argument("--embeddings", default="embeddings.json", help="template embedding json file")
 
     # Features
     parser.add_argument("--sequentials", default=True, help="sequences of logkeys")

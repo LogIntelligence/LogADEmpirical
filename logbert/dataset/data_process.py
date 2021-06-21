@@ -7,6 +7,7 @@ from logbert.logdeep.dataset.session import sliding_window, session_window
 import shutil
 import pickle
 
+
 # tqdm.pandas()
 # pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -43,7 +44,7 @@ def sample_raw_data(data_file, output_file, sample_window_size, sample_step_size
 
             idx += 1
             if idx % sample_step_size == 0:
-                print(f"Process {round(idx/sample_window_size * 100,4)} % raw data", end='\r')
+                print(f"Process {round(idx / sample_window_size * 100, 4)} % raw data", end='\r')
 
     with open(output_file, "w") as f:
         f.writelines(sample_data)
@@ -94,10 +95,12 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
         df['deltaT'].fillna(0)
         n_train = int(len(df) * train_size)
         print(n_train, len(df))
-        train_window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]].iloc[:n_train,:],
-                                   para={"window_size": float(window_size)*60, "step_size": float(step_size) * 60})
-        test_window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]].iloc[n_train:,:].reset_index(drop=True),
-                                   para={"window_size": float(window_size)*60, "step_size": float(step_size) * 60})
+        train_window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT"]].iloc[:n_train, :],
+                                         para={"window_size": float(window_size) * 60,
+                                               "step_size": float(step_size) * 60})
+        test_window_df = sliding_window(
+            df[["timestamp", "Label", "EventId", "deltaT"]].iloc[n_train:, :].reset_index(drop=True),
+            para={"window_size": float(window_size) * 60, "step_size": float(step_size) * 60})
 
     elif window_type == "session":
         # only for hdfs
@@ -109,6 +112,9 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
             label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
         window_df = session_window(df, id_regex, label_dict)
+        n_train = int(len(window_df) * train_size)
+        train_window_df = window_df.iloc[:n_train, :]
+        test_window_df = window_df.iloc[n_train:, :].reset_index(drop=True)
 
     else:
         raise NotImplementedError(f"{window_type} is not implemented")
@@ -128,7 +134,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
 
     # train = df_normal[:train_len]
     train = df_normal
-    _file_generator(os.path.join(output_dir,'train'), train, ["EventId"])
+    _file_generator(os.path.join(output_dir, 'train'), train, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
 
     df_abnormal = train_window_df[train_window_df["Label"] == 1]
@@ -136,7 +142,6 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     shutil.copyfile(os.path.join(output_dir, "train_abnormal"), os.path.join(data_dir, "train_abnormal"))
 
     print("training size {}".format(len(train)))
-
 
     ###############
     # Test Normal #
@@ -146,7 +151,6 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     _file_generator(os.path.join(output_dir, 'test_normal'), test_normal, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, 'test_normal'), os.path.join(data_dir, 'test_normal'))
     print("test normal size {}".format(len(test_normal)))
-
 
     # del df_normal
     # del train
@@ -158,7 +162,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
     #################
     # df_abnormal = window_df[window_df["Label"] == 1]
     df_abnormal = test_window_df[test_window_df["Label"] == 1]
-    _file_generator(os.path.join(output_dir,'test_abnormal'), df_abnormal, ["EventId"])
+    _file_generator(os.path.join(output_dir, 'test_abnormal'), df_abnormal, ["EventId"])
     shutil.copyfile(os.path.join(output_dir, 'test_abnormal'), os.path.join(data_dir, 'test_abnormal'))
     print('test abnormal size {}'.format(len(df_abnormal)))
 
@@ -167,6 +171,7 @@ def _file_generator2(filename, df):
     with open(filename, 'w') as f:
         for _, seq in enumerate(df):
             f.write(" ".join(seq) + "\n")
+
 
 def process_instance(data_dir, output_dir, train_file, test_file):
     """
@@ -188,7 +193,7 @@ def process_instance(data_dir, output_dir, train_file, test_file):
     # Transformation #
     ##################
 
-    with open(os.path.join(data_dir,train_file), mode='rb') as f:
+    with open(os.path.join(data_dir, train_file), mode='rb') as f:
         train = pickle.load(f)
 
     with open(os.path.join(data_dir, test_file), mode='rb') as f:
@@ -202,7 +207,7 @@ def process_instance(data_dir, output_dir, train_file, test_file):
     # Train #
     #########
     train_normal = [x.src_event_ids for x in train if not x.is_anomaly]
-    _file_generator2(os.path.join(output_dir,'train'), train_normal)
+    _file_generator2(os.path.join(output_dir, 'train'), train_normal)
     shutil.copyfile(os.path.join(output_dir, "train"), os.path.join(data_dir, "train"))
 
     train_abnormal = [x.src_event_ids for x in train if x.is_anomaly]
@@ -210,7 +215,6 @@ def process_instance(data_dir, output_dir, train_file, test_file):
     shutil.copyfile(os.path.join(output_dir, "train_abnormal"), os.path.join(data_dir, "train_abnormal"))
 
     print("training size {}".format(len(train_normal)))
-
 
     ###############
     # Test Normal #
@@ -220,7 +224,6 @@ def process_instance(data_dir, output_dir, train_file, test_file):
     _file_generator2(os.path.join(output_dir, 'test_normal'), test_normal)
     shutil.copyfile(os.path.join(output_dir, "test_normal"), os.path.join(data_dir, "test_normal"))
     print("test normal size {}".format(len(test_normal)))
-
 
     # del df_normal
     # del train

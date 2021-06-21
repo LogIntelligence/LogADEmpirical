@@ -159,10 +159,10 @@ def load_sliding_windows_instances(log_file, train_ratio=0.5, windows_size=20, s
     return x_tr, x_te
 
 if __name__ == '__main__':
-    x_tr, x_te = load_fixed_windows_instances("./bgl/BGL.log_structured.csv", train_ratio=0.8, windows_size=120)
+    x_tr, x_te = load_fixed_windows_instances("./tdb/Thunderbird10M.log_structured.csv", train_ratio=0.8, windows_size=100)
 
-    with open("./bgl/train_fixed120_instances.pkl", mode="wb") as f:
+    with open("./tdb/train_fixed100_instances.pkl", mode="wb") as f:
         pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open("./bgl/test_fixed120_instances.pkl", mode="wb") as f:
+    with open("./tdb/test_fixed100_instances.pkl", mode="wb") as f:
         pickle.dump(x_te, f, protocol=pickle.HIGHEST_PROTOCOL)

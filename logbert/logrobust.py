@@ -7,7 +7,7 @@ from logbert.logdeep.dataset.vocab import Vocab
 
 
 
-def run_deeplog(options):
+def run_logrobust(options):
     if not os.path.exists(options["vocab_path"]):
         with open(options["train_vocab"], 'r') as f:
             logs = f.readlines()
@@ -23,4 +23,4 @@ def run_deeplog(options):
     #                 embedding_dim=options["embedding_dim"])
 
     Trainer(options).start_train()
-    Predicter(options).predict_unsupervised()
+    Predicter(options).predict_supervised()
