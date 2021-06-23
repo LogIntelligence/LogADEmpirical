@@ -6,6 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
+
 
 def read_json(filename):
     with open(filename, 'r') as load_f:
@@ -49,6 +51,7 @@ def isfloat(x):
     else:
         return True
 
+
 def isint(x):
     try:
         a = float(x)
@@ -88,11 +91,11 @@ def split_features(data_path, train_ratio=1, scale=None, scale_path=None, min_le
         times.append(tim.tolist())
 
     if scale is not None:
-        total_times = np.concatenate(times, axis=0).reshape(-1,1)
+        total_times = np.concatenate(times, axis=0).reshape(-1, 1)
         scale.fit(total_times)
 
         for i, tn in enumerate(times):
-            tn = np.array(tn).reshape(-1,1)
+            tn = np.array(tn).reshape(-1, 1)
             times[i] = scale.transform(tn).reshape(-1).tolist()
 
         with open(scale_path, 'wb') as f:
@@ -111,7 +114,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
             ...
         labels(list)
     '''
-    #event2semantic_vec = read_json(data_dir + 'hdfs/event2semantic_vec.json')
+    # event2semantic_vec = read_json(data_dir + 'hdfs/event2semantic_vec.json')
     result_logs = {}
     result_logs['Sequentials'] = []
     result_logs['Quantitatives'] = []
@@ -126,12 +129,12 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
 
     for line, params in zip(*data_iter):
         if num_sessions % 1000 == 0:
-            print("processed %s lines"%num_sessions, end='\r')
+            print("processed %s lines" % num_sessions, end='\r')
         num_sessions += 1
 
         line = [vocab.stoi.get(ln, vocab.unk_index) for ln in line]
 
-        session_len = max(len(line), window_size) + 1# predict the next one
+        session_len = max(len(line), window_size) + 1  # predict the next one
         padding_size = session_len - len(line)
         params = params + [0] * padding_size
         line = line + [vocab.pad_index] * padding_size
@@ -156,7 +159,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
 
             Sequential_pattern = np.array(Sequential_pattern)
             Quantitative_pattern = np.array(Quantitative_pattern)[:, np.newaxis]
-            Parameter_pattern = np.array(Parameter_pattern)[:, np.newaxis] #increase one more dimension
+            Parameter_pattern = np.array(Parameter_pattern)[:, np.newaxis]  # increase one more dimension
 
             result_logs['Sequentials'].append(Sequential_pattern)
             result_logs['Quantitatives'].append(Quantitative_pattern)
@@ -171,13 +174,15 @@ def sliding_window(data_iter, vocab, window_size, is_train=True):
     return result_logs, labels
 
 
-def session_window(data_dir, datatype, train_ratio=1, e_name="", num_events=29):
+def session_window(data_dir, datatype, vocab, train_ratio=1, e_name="embeddings.json"):
     event2semantic_vec = read_json(os.path.join(data_dir, e_name))
     result_logs = {}
     result_logs['Sequentials'] = []
     result_logs['Quantitatives'] = []
     result_logs['Semantics'] = []
     labels = []
+
+    num_events = len(vocab)
 
     if datatype == 'train':
         data_dir += 'train'
@@ -189,6 +194,7 @@ def session_window(data_dir, datatype, train_ratio=1, e_name="", num_events=29):
         f_abnormal = data_dir + "_abnormal"
     else:
         raise NotImplementedError
+
     x, y = [], []
     with open(f_normal, mode="r") as f:
         for line in f.readlines():
@@ -210,24 +216,47 @@ def session_window(data_dir, datatype, train_ratio=1, e_name="", num_events=29):
                 Semantic_pattern.append([-1] * 300)
             else:
                 Semantic_pattern.append(event2semantic_vec[event])
+        Sequential_pattern = [vocab.stoi.get(ln, vocab.unk_index) for ln in Sequential_pattern]
         Quantitative_pattern = [0] * num_events
         log_counter = Counter(Sequential_pattern)
 
         for key in log_counter:
             Quantitative_pattern[key] = log_counter[key]
 
-        Sequential_pattern = np.array(Sequential_pattern) # [:, np.newaxis]
+        Sequential_pattern = np.array(Sequential_pattern)  # [:, np.newaxis]
         Quantitative_pattern = np.array(Quantitative_pattern)[:, np.newaxis]
         result_logs['Sequentials'].append(Sequential_pattern)
         result_logs['Quantitatives'].append(Quantitative_pattern)
         result_logs['Semantics'].append(Semantic_pattern)
         labels.append(y[i])
-
     print('Number of sessions({}): {}'.format(data_dir,
                                               len(result_logs['Semantics'])))
 
+    with open("bgl-robustlog-train.pkl", mode="wb") as f:
+        pickle.dump((result_logs['Semantics'], labels), f, protocol=pickle.HIGHEST_PROTOCOL)
+
     if train_ratio != 1:
-        (train_x, train_y), (val_x, val_y) = train_test_split(result_logs, labels, test_size=train_ratio)
+        n_samples = len(result_logs['Semantics'])
+        n_train = int(n_samples * train_ratio)
+        print(n_train, n_samples)
+        sequentials, quantitatives, semantics = result_logs['Sequentials'].copy(), result_logs['Quantitatives'].copy(), \
+                                                result_logs['Semantics'].copy()
+        sequentials, quantitatives, semantics, labels = shuffle(sequentials, quantitatives, semantics, labels)
+        train_x = {}
+        train_x['Sequentials'] = sequentials[:n_train]
+        train_x['Quantitatives'] = quantitatives[:n_train]
+        train_x['Semantics'] = semantics[:n_train]
+        train_y = labels[:n_train]
+
+        val_x = {}
+        val_x['Sequentials'] = sequentials[n_train:]
+        val_x['Quantitatives'] = quantitatives[n_train:]
+        val_x['Semantics'] = semantics[n_train:]
+        val_y = labels[n_train:]
+        with open("train.pkl", mode="wb") as f:
+            pickle.dump((train_x['Semantics'], train_y), f)
+        with open("val.pkl", mode="wb") as f:
+            pickle.dump((val_x['Semantics'], val_y), f)
         return (train_x, train_y), (val_x, val_y)
     else:
         return result_logs, labels

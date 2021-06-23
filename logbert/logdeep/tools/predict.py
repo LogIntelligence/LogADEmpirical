@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from logbert.logdeep.dataset.log import log_dataset
 from logbert.logdeep.dataset.sample import session_window, sliding_window
-from logbert.logdeep.models.lstm import deeplog, loganomaly
+from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
 
 
 def generate(output_dir, name):
@@ -28,6 +28,7 @@ def generate(output_dir, name):
 
 class Predicter():
     def __init__(self, options):
+        self.data_dir = options['data_dir']
         self.output_dir = options['output_dir']
         self.model_dir = options['model_dir']
         self.vocab_path = options["vocab_path"]
@@ -55,6 +56,7 @@ class Predicter():
         self.quantitatives = options['quantitatives']
         self.semantics = options['semantics']
         self.parameters = options['parameters']
+        self.embeddings = options['embeddings']
 
         self.lower_bound = 0
         self.upper_bound = 3
@@ -250,11 +252,34 @@ class Predicter():
             plt.show()
 
     def predict_supervised(self):
-        model = self.model.to(self.device)
+        with open(self.vocab_path, 'rb') as f:
+            vocab = pickle.load(f)
+        if self.model_name == "deeplog":
+            lstm_model = deeplog
+        elif self.model_name == "loganomaly":
+            lstm_model = loganomaly
+        else:
+            lstm_model = robustlog
+
+        model_init = lstm_model(input_size=self.input_size,
+                                hidden_size=self.hidden_size,
+                                num_layers=self.num_layers,
+                                vocab_size=len(vocab),
+                                embedding_dim=self.embedding_dim)
+        model = model_init.to(self.device)
         model.load_state_dict(torch.load(self.model_path)['state_dict'])
         model.eval()
         print('model_path: {}'.format(self.model_path))
-        test_logs, test_labels = session_window(self.output_dir, datatype='test')
+        test_logs, test_labels = session_window(self.data_dir,
+                                                datatype='test',
+                                                vocab=vocab,
+                                                train_ratio=1,
+                                                e_name=self.embeddings)
+            # session_window(self.output_dir, datatype='test')
+        x = test_logs['Semantics']
+        y = test_labels
+        with open("bgl-robustlog-test.pkl", mode="wb") as f:
+            pickle.dump((x, y), f)
         test_dataset = log_dataset(logs=test_logs,
                                    labels=test_labels,
                                    seq=self.sequentials,
@@ -270,10 +295,9 @@ class Predicter():
             features = []
             for value in log.values():
                 features.append(value.clone().to(self.device))
-            output = self.model(features=features, device=self.device)
-            output = F.sigmoid(output)[:, 0].cpu().detach().numpy()
-            # predicted = torch.argmax(output, dim=1).cpu().numpy()
-            predicted = (output < 0.2).astype(int)
+            output, _ = model(features=features, device=self.device)
+            output = output.squeeze()
+            predicted = torch.argmax(output, dim=1).cpu().numpy()
             label = np.array([y.cpu() for y in label])
             TP += ((predicted == 1) * (label == 1)).sum()
             FP += ((predicted == 1) * (label == 0)).sum()

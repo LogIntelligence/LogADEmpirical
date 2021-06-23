@@ -11,6 +11,7 @@ import gc
 
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -49,9 +50,11 @@ class Trainer():
         self.quantitatives = options['quantitatives']
         self.semantics = options['semantics']
         self.parameters = options['parameters']
+        self.embeddings = options['embeddings']
 
         self.sample = options['sample']
         self.train_ratio = options['train_ratio']
+        self.train_size = options['train_size']
         self.valid_ratio = options['valid_ratio']
 
         self.is_logkey = options["is_logkey"]
@@ -60,6 +63,10 @@ class Trainer():
         self.early_stopping = False
         self.epochs_no_improve = 0
         self.criterion = None
+
+        print("Loading vocab")
+        with open(self.vocab_path, 'rb') as f:
+            vocab = pickle.load(f)
 
         if self.sample == 'sliding_window':
             print("Loading train dataset\n")
@@ -71,10 +78,6 @@ class Trainer():
 
             train_logkeys, valid_logkeys, train_times, valid_times = train_test_split(logkeys, times,
                                                                                       test_size=self.valid_ratio)
-
-            print("Loading vocab")
-            with open(self.vocab_path, 'rb') as f:
-                vocab = pickle.load(f)
 
             train_logs, train_labels = sliding_window((train_logkeys, train_times),
                                                       vocab=vocab,
@@ -93,7 +96,9 @@ class Trainer():
         elif self.sample == 'session_window':
             (train_logs, train_labels), (val_logs, val_labels) = session_window(self.data_dir,
                                                                                 datatype='train',
-                                                                                sample_ratio=self.train_ratio)
+                                                                                vocab=vocab,
+                                                                                train_ratio=self.train_ratio,
+                                                                                e_name=self.embeddings)
         else:
             raise NotImplementedError
 
@@ -131,7 +136,7 @@ class Trainer():
 
         if self.model_name == "deeplog":
             lstm_model = deeplog
-        elif self.model == "loganomaly":
+        elif self.model_name == "loganomaly":
             lstm_model = loganomaly
         else:
             lstm_model = robustlog
@@ -148,7 +153,7 @@ class Trainer():
                                              lr=options['lr'],
                                              momentum=0.9)
         elif options['optimizer'] == 'adam':
-            self.optimizer = torch.optim.Adam(
+            self.optimizer = torch.optim.AdamW(
                 self.model.parameters(),
                 lr=options['lr'],
                 betas=(0.9, 0.999),
@@ -156,7 +161,7 @@ class Trainer():
         else:
             raise NotImplementedError
 
-        self.criterion = nn.CrossEntropyLoss(ignore_index=0)
+        self.criterion = nn.CrossEntropyLoss()
         self.time_criterion = nn.MSELoss()
 
         self.start_epoch = 0
@@ -223,18 +228,26 @@ class Trainer():
         tbar = tqdm(self.train_loader, desc="\r")
         num_batch = len(self.train_loader)
         total_losses = 0
+        acc = 0
+        total_log = 0
         for i, (log, label) in enumerate(tbar):
             features = []
             for value in log.values():
                 features.append(value.clone().detach().to(self.device))
-
             # output is log key and timestamp
             output0, output1 = self.model(features=features, device=self.device)
             output0, output1 = output0.squeeze(), output1.squeeze()
-
-            label0, label1 = label
+            try:
+                label0, label1 = label
+            except:
+                label0, label1 = label, label
             label0 = label0.view(-1).to(self.device)
             label1 = label1.view(-1).to(self.device).float()
+
+            predicted = output0.argmax(dim=1).cpu().numpy()
+            label = np.array([y.cpu() for y in label0])
+            acc += (predicted == label).sum()
+            total_log += len(label)
 
             loss0 = 0 if not self.is_logkey else self.criterion(output0, label0)
             loss1 = 0 if not self.is_time else self.time_criterion(output1, label1)
@@ -244,13 +257,10 @@ class Trainer():
             loss /= self.accumulation_step
             loss.backward()
 
-            # Basically it involves making optimizer steps after several batches
-            # thus increasing effective batch size.
-            # https: // www.kaggle.com / c / understanding_cloud_organization / discussion / 105614
             if (i + 1) % self.accumulation_step == 0:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-            tbar.set_description("Train loss: %.5f" % (total_losses / (i + 1)))
+            tbar.set_description("Train loss: {0:.5f} - Train acc: {1:.2f}".format(total_losses / (i + 1), acc / total_log))
 
         self.log['train']['loss'].append(total_losses / num_batch)
 
@@ -263,7 +273,8 @@ class Trainer():
         print("\nStarting epoch: %d | phase: valid | ⏰: %s " % (epoch, start))
         self.log['valid']['time'].append(start)
         total_losses = 0
-
+        acc = 0
+        total_log = 0
         tbar = tqdm(self.valid_loader, desc="\r")
         num_batch = len(self.valid_loader)
 
@@ -273,12 +284,19 @@ class Trainer():
                 features = []
                 for value in log.values():
                     features.append(value.clone().detach().to(self.device))
-
                 output0, output1 = self.model(features=features, device=self.device)
                 output0, output1 = output0.squeeze(), output1.squeeze()
-                label0, label1 = label
+                try:
+                    label0, label1 = label
+                except:
+                    label0, label1 = label, label
                 label0 = label0.view(-1).to(self.device)
                 label1 = label1.view(-1).to(self.device).float()
+                predicted = output0.argmax(dim=1).cpu().numpy()
+                label = np.array([y.cpu() for y in label0])
+                acc += (predicted == label).sum()
+                total_log += len(label)
+                # print(label0.shape)
 
                 loss0 = 0 if not self.is_logkey else self.criterion(output0, label0)
                 loss1 = 0 if not self.is_time else self.time_criterion(output1, label1)
@@ -289,7 +307,7 @@ class Trainer():
                     errors = np.concatenate((errors, error))
 
                 total_losses += float(loss)
-        print("\nValidation loss:", total_losses / num_batch)
+        print("\nValidation loss:", total_losses / num_batch, "Validation accuracy:", acc / total_log)
         self.log['valid']['loss'].append(total_losses / num_batch)
 
         if total_losses / num_batch < self.best_loss:

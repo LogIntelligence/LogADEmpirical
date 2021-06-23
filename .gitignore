@@ -137,3 +137,16 @@ dmypy.json
 **/**.log
 **/**.csv
 */*.csv
+*/*.pkl
+**/**.pkl
+**.pkl
+*.pkl
+
+# model
+**.pth
+**/**.pth
+*.pth
+*/*.pth
+
+# testing
+untitled8.py
