@@ -1,6 +1,6 @@
 ## Empirical Study on Log-based Anomaly Detection
 
-This repository provides the implementation of Logbert method for log anomaly detection. 
+This repository provides the implementation of recent log-based anomaly detection methods. 
 The process includes downloading raw data online, parsing logs into structured data, 
 creating log sequences and finally modeling. 
 
