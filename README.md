@@ -1,5 +1,4 @@
-## LogBERT: Log Anomaly Detection via BERT
-This repository is under construction: 80% done_
+## Empirical Study on Log-based Anomaly Detection
 
 This repository provides the implementation of Logbert method for log anomaly detection. 
 The process includes downloading raw data online, parsing logs into structured data, 
