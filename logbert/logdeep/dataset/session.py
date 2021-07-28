@@ -11,12 +11,14 @@ def session_window(raw_data, id_regex, label_dict):
         blkId_set = set(blkId_list)
         for blk_Id in blkId_set:
             if blk_Id not in data_dict:
-                data_dict[blk_Id] = [row["EventId"]]
+                data_dict[blk_Id] = ([row["EventId"]], [row['EventTemplate']])
             else:
-                data_dict[blk_Id].append([row["EventId"]])
+                data_dict[blk_Id][0].append(row["EventId"])
+                data_dict[blk_Id][1].append(row["EventTemplate"])
 
-    data_df = pd.DataFrame(list(data_dict.items()), columns=['SessionId', 'EventId'])
+    data_df = pd.DataFrame([(k, *v) for k, v in data_dict.items()], columns=['SessionId', 'EventId', "EventTemplate"])
     data_df["Label"] = data_df["SessionId"].apply(lambda x: label_dict.get(x))
+    data_df = data_df.sample(frac=1).reset_index(drop=True)
     return data_df
 
 
@@ -30,7 +32,8 @@ def sliding_window(raw_data, para):
     """
     log_size = raw_data.shape[0]
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
-    logkey_data, deltaT_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3]
+    # print(label_data[:10])
+    logkey_data, deltaT_data, log_template_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
     new_data = []
     start_end_index_pair = set()
 
@@ -79,9 +82,10 @@ def sliding_window(raw_data, para):
         dt[0] = 0
         new_data.append([
             time_data[start_index: end_index].values,
-            max(label_data[start_index:end_index]),
+            label_data[start_index:end_index],
             logkey_data[start_index: end_index].values,
-            dt
+            dt,
+            log_template_data[start_index: end_index]
         ])
 
     assert len(start_end_index_pair) == len(new_data)
@@ -116,4 +120,5 @@ def deeplog_file_generator(filename, df, features):
             for val in zip(*row[features]):
                 f.write(','.join([str(v) for v in val]) + ' ')
             f.write('\n')
+
 

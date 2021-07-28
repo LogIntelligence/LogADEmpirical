@@ -5,6 +5,8 @@ from logbert.logdeep.tools.utils import seed_everything, save_parameters
 from logbert.deeplog import run_deeplog
 from logbert.loganomaly import run_loganomaly
 from logbert.logrobust import run_logrobust
+from logbert.neurallog import run_neurallog
+from logbert.cnn import run_cnn
 from logbert.bert import run_logbert
 from logbert.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
@@ -20,10 +22,11 @@ def arg_parser():
     """
     parser = ArgumentParser()
     parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly",
-                                                                              "logrobust", "baseline"])
+                                                                              "logrobust", "baseline", "neurallog",
+                                                                              "cnn"])
     parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
                                                                                 "bgl_2k", "tdb", "spirit", "bo",
-                                                                                "bgl2"])
+                                                                                "bgl2", "hadoop"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
     parser.add_argument("--output_dir", default="./output/", metavar="DIR", help="output directory")
@@ -46,8 +49,8 @@ def arg_parser():
 
     parser.add_argument("--is_process", action='store_true', help="if split train and test data")
     parser.add_argument("--is_instance", action='store_true', help="if instances of log are available")
-    parser.add_argument("--train_file", default=None, help="train instances file name")
-    parser.add_argument("--test_file", default=None, help="test instances file name")
+    parser.add_argument("--train_file", default="train_fixed100_instances.pkl", help="train instances file name")
+    parser.add_argument("--test_file", default="test_fixed100_instances.pkl", help="test instances file name")
     parser.add_argument("--window_type", type=str, choices=["sliding", "session"],
                         help="window for building log sequence")
     parser.add_argument('--window_size', default=5, type=float, help='window size(mins)')
@@ -67,11 +70,12 @@ def arg_parser():
 
     # features
     parser.add_argument("--is_logkey", action='store_true', help="is logkey included in features")
+    parser.add_argument("--random_sample", action='store_true', help="is logkey included in features")
     parser.add_argument("--is_time", action='store_true', help="is time duration included in features")
 
     parser.add_argument("--min_freq", default=1, type=int, help="min frequency of logkey")
     # logbert
-    parser.add_argument("--seq_len", default=512, type=int, help="max length of sequence")
+    parser.add_argument("--seq_len", default=10, type=int, help="max length of sequence")
     parser.add_argument("--min_len", default=10, type=int, help="min length of sequence")
     parser.add_argument("--max_len", default=512, type=int, help="for position embedding in bert")
     parser.add_argument("--mask_ratio", default=0.5, type=float, help="mask ratio in bert")
@@ -98,9 +102,9 @@ def arg_parser():
     parser.add_argument("--embeddings", default="embeddings.json", help="template embedding json file")
 
     # Features
-    parser.add_argument("--sequentials", default=False, help="sequences of logkeys")
-    parser.add_argument("--quantitatives", default=False, help="logkey count vector")
-    parser.add_argument("--semantics", default=False, action='store_true', help="logkey embedding with semantics "
+    parser.add_argument("--sequentials", default=True, help="sequences of logkeys")
+    parser.add_argument("--quantitatives", default=True, help="logkey count vector")
+    parser.add_argument("--semantics", default=True, action='store_true', help="logkey embedding with semantics "
                                                                                 "vectors")
     parser.add_argument("--parameters", default=False, help="include paramters in logs after parsing such time")
 
@@ -116,6 +120,14 @@ def arg_parser():
     parser.add_argument("--num_candidates", default=9, type=int, help="top g candidates are normal")
     parser.add_argument("--log_freq", default=100, type=int, help="logging frequency of the batch iteration")
     parser.add_argument("--resume_path", action='store_true')
+
+    # neural_log
+    parser.add_argument("--num_encoder_layers", default=1, type=int, help="number of encoder layers")
+    parser.add_argument("--num_decoder_layers", default=1, type=int, help="number of decoder layers")
+    parser.add_argument("--dim_model", default=300, type=int, help="model's dim")
+    parser.add_argument("--num_heads", default=8, type=int, help="number of attention heads")
+    parser.add_argument("--dim_feedforward", default=2048, type=int, help="feed-forward network's dim")
+    parser.add_argument("--transformers_dropout", default=0.1, type=float, help="dropout rate of transformers model")
     return parser
 
 
@@ -148,7 +160,7 @@ def main():
         process_dataset(data_dir=args.data_dir, output_dir=args.output_dir, log_file=args.log_file,
                         dataset_name=args.dataset_name, window_type=args.window_type,
                         window_size=args.window_size, step_size=args.step_size,
-                        train_size=args.train_size)
+                        train_size=args.train_size, random_sample=args.random_sample)
 
     if args.is_instance:
         process_instance(data_dir=args.data_dir, output_dir=args.output_dir, train_file=args.train_file,
@@ -156,7 +168,7 @@ def main():
 
     options = vars(args)
     options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
-    options["train_vocab"] = options["output_dir"] + "train"
+    options["train_vocab"] = options["output_dir"] + "train.pkl"
     options["vocab_path"] = options["data_dir"] + "vocab.pkl"  # pickle file
     options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
     options["scale_path"] = options["model_dir"] + "scale.pkl"
@@ -177,6 +189,10 @@ def main():
         run_loganomaly(options)
     elif args.model_name == "logrobust":
         run_logrobust(options)
+    elif args.model_name == "neurallog":
+        run_neurallog(options)
+    elif args.model_name == "cnn":
+        run_cnn(options)
     elif args.model_name == "baseline":
         pass
     else:

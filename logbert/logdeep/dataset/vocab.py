@@ -12,7 +12,7 @@ class Vocab(object):
 
         event_count = Counter()
         for line in logs:
-            for logkey in line.split():
+            for logkey in line:
                 event_count[logkey] += 1
 
         for event, freq in event_count.items():

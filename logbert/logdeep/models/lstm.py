@@ -10,6 +10,7 @@ class deeplog(nn.Module):
 
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
+        print(vocab_size)
         self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
         torch.nn.init.uniform_(self.embedding.weight)
         self.embedding.weight.requires_grad = True
@@ -70,7 +71,7 @@ class robustlog(nn.Module):
         return attn_output
 
     def forward(self, features, device):
-        inp = features[0]
+        inp = features[2]
         self.sequence_length = inp.size(1)
         out, _ = self.lstm(inp)
         out = self.attention_net(out, device)
@@ -104,7 +105,9 @@ class loganomaly(nn.Module):
         self.fc = nn.Linear(2 * hidden_size, vocab_size)
 
     def forward(self, features, device):
+        # print(len(features), "fdsklfjsd")
         input0, input1 = features[0], features[1]
+        # print(input1.shape)
         embed0 = self.embedding(input0)
 
         h0_0 = torch.zeros(self.num_layers, embed0.size(0),

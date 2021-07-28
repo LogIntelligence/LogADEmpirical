@@ -13,17 +13,31 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.metrics import auc
 
 from logbert.logdeep.dataset.log import log_dataset
-from logbert.logdeep.dataset.sample import session_window, sliding_window
+from logbert.logdeep.dataset.sample import sliding_window
 from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
+from logbert.logdeep.models.cnn import TextCNN
+from logbert.neural_log.transformers import TransformerClassification
 
 
 def generate(output_dir, name):
     print("Loading", output_dir + name)
-    with open(output_dir + name, 'r') as f:
-        data_iter = f.readlines()
-    return data_iter, len(data_iter)
+    with open(output_dir + name, 'rb') as f:
+        data_iter = pickle.load(f)
+    normal_iter = []
+    abnormal_iter = []
+    for seq in data_iter:
+        if not isinstance(seq['Label'], int):
+            label = max(seq['Label'].tolist())
+        else:
+            label = seq['Label']
+        if label == 0:
+            normal_iter.append((seq['EventId'], label))
+        else:
+            abnormal_iter.append((seq['EventId'], label))
+    return normal_iter, abnormal_iter
 
 
 class Predicter():
@@ -38,6 +52,7 @@ class Predicter():
         self.device = options['device']
         self.window_size = options['window_size']
         self.min_len = options["min_len"]
+        self.seq_len = options["seq_len"]
         self.history_size = options['history_size']
 
         self.is_logkey = options["is_logkey"]
@@ -58,15 +73,26 @@ class Predicter():
         self.parameters = options['parameters']
         self.embeddings = options['embeddings']
 
+        # transformers' parameters
+        self.num_encoder_layers = options["num_encoder_layers"]
+        self.num_decoder_layers = options["num_decoder_layers"]
+        self.dim_model = options["dim_model"]
+        self.num_heads = options["num_heads"]
+        self.dim_feedforward = options["dim_feedforward"]
+        self.transformers_dropout = options["transformers_dropout"]
+
         self.lower_bound = 0
         self.upper_bound = 3
 
     def detect_logkey_anomaly(self, output, label):
-        num_anomaly = 0
+        num_anomaly = []
         for i in range(len(label)):
-            predicted = torch.argsort(output[i])[-self.num_candidates:].clone().detach().cpu()
+            predicted = torch.argsort(output[i])[-self.num_candidates:].clone().detach().cpu().tolist()
+            # print(predicted, label[i], label[i] in predicted, predicted.index(label[i]))
             if label[i] not in predicted:
-                num_anomaly += 1
+                num_anomaly.append(self.num_candidates + 1)
+            else:
+                num_anomaly.append(predicted.index(label[i]) + 1)
         return num_anomaly
 
     def detect_params_anomaly(self, output, label):
@@ -80,11 +106,11 @@ class Predicter():
     def compute_anomaly(self, results, threshold=0):
         total_errors = 0
         for seq_res in results:
-            if isinstance(threshold, float):
-                threshold = seq_res["predicted_logkey"] * threshold
-
-            error = (self.is_logkey and seq_res["logkey_anomaly"] > threshold) or \
-                    (self.is_time and seq_res["params_anomaly"] > threshold)
+            # if isinstance(threshold, float):
+            #     threshold = seq_res["predicted_logkey"] * threshold
+            # seq_res = seq_res[1:]
+            # print(max(seq_res), min(seq_res))
+            error = seq_res > threshold
             total_errors += int(error)
 
         return total_errors
@@ -110,82 +136,42 @@ class Predicter():
         return res
 
     def unsupervised_helper(self, model, data_iter, vocab, data_type, scale=None, min_len=0):
-        test_results = []
         normal_errors = []
 
         num_test = len(data_iter)
         rand_index = torch.randperm(num_test)
         rand_index = rand_index[:int(num_test * self.test_ratio)]
-
+        data_iter = [line for line in data_iter if len(line[0]) >= min_len]
+        test_results = [0] * len(data_iter)
+        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
+        dataset = log_dataset(logs=logs,
+                              labels=labels,
+                              seq=self.sequentials,
+                              quan=self.quantitatives,
+                              sem=self.semantics,
+                              param=self.parameters)
+        data_loader = DataLoader(dataset,
+                                 batch_size=min(len(dataset), 4096),
+                                 shuffle=True,
+                                 pin_memory=False)
+        tbar = tqdm(data_loader, desc="\r")
         with torch.no_grad():
-            for idx, line in tqdm(enumerate(data_iter)):
-                if idx not in rand_index:
-                    continue
+            for _, (log, label) in enumerate(tbar):
+                features = []
+                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
 
-                line = [ln.split(",") for ln in line.split()]
+                output, _ = model(features=features, device=self.device)
 
-                if len(line) < min_len:
-                    continue
-
-                line = np.array(line)
-                # if time duration exists in data
-                if line.shape[1] == 2:
-                    tim = line[:, 1].astype(float)
-                    tim[0] = 0
-                    logkey = line[:, 0]
-                else:
-                    logkey = line.squeeze()
-                    # if time duration doesn't exist, then create a zero array for time
-                    tim = np.zeros(logkey.shape)
-
-                if scale is not None:
-                    tim = np.array(tim).reshape(-1,1)
-                    tim = scale.transform(tim).reshape(-1).tolist()
-
-                logkeys, times = [logkey.tolist()], [tim.tolist()] # add next axis
-
-                logs, labels = sliding_window((logkeys, times), vocab, window_size=self.history_size, is_train=False)
-                dataset = log_dataset(logs=logs,
-                                        labels=labels,
-                                        seq=self.sequentials,
-                                        quan=self.quantitatives,
-                                        sem=self.semantics,
-                                        param=self.parameters)
-                data_loader = DataLoader(dataset,
-                                               batch_size=min(len(dataset), 128),
-                                               shuffle=True,
-                                               pin_memory=True)
-                # batch_size = len(dataset)
-                num_logkey_anomaly = 0
-                num_params_anomaly = 0
-                num_predicted_logkey = 0
-                for _, (log, label) in enumerate(data_loader):
-                    features = []
-                    for value in log.values():
-                        features.append(value.clone().detach().to(self.device))
-
-                    output0, output1 = model(features=features, device=self.device)
-                    label0, label1 = label
-
-                    num_predicted_logkey += len(label0)
-
-                    if self.is_logkey:
-                        num_logkey_anomaly += self.detect_logkey_anomaly(output0, label0)
-
-                    if self.is_time:
-                        #normal_errors.append(output1.cpu().detach().numpy() - label)
-                        num_params_anomaly += self.detect_params_anomaly(output1, label1)
-
-                # result for line at idx
-                result = {"logkey_anomaly":num_logkey_anomaly,
-                          "params_anomaly": num_params_anomaly,
-                          "predicted_logkey": num_predicted_logkey
-                          }
-                test_results.append(result)
-                if idx < 10 or idx % 1000 == 0:
-                    print(data_type)
-                    print(result)
-
+                if self.is_logkey:
+                    num_logkey_anomaly = self.detect_logkey_anomaly(output, label)
+                    for i in range(len(seq_idx)):
+                        # if num_logkey_anomaly[i] > self.num_candidates:
+                        #     print(seq_idx[i])
+                        test_results[seq_idx[i]] = max(num_logkey_anomaly[i], test_results[seq_idx[i]])
+            # print(test_results)
             return test_results, normal_errors
 
     def predict_unsupervised(self):
@@ -198,19 +184,19 @@ class Predicter():
             lstm_model = loganomaly
 
         model_init = lstm_model(input_size=self.input_size,
-                        hidden_size=self.hidden_size,
-                        num_layers=self.num_layers,
-                        vocab_size=len(vocab),
-                        embedding_dim=self.embedding_dim)
+                                hidden_size=self.hidden_size,
+                                num_layers=self.num_layers,
+                                vocab_size=len(vocab),
+                                embedding_dim=self.embedding_dim)
         model = model_init.to(self.device)
 
         model.load_state_dict(torch.load(self.model_path)['state_dict'])
         model.eval()
         print('model_path: {}'.format(self.model_path))
 
-        test_normal_loader, _ = generate(self.output_dir, 'test_normal')
-        test_abnormal_loader, _ = generate(self.output_dir, 'test_abnormal')
-        #print("testing normal size: {}, testing abnormal size: {}".format(test_normal_length, test_abnormal_length))
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
+        print(len(test_normal_loader), len(test_abnormal_loader))
+        # print("testing normal size: {}, testing abnormal size: {}".format(test_normal_length, test_abnormal_length))
 
         scale = None
         if self.is_time:
@@ -219,8 +205,11 @@ class Predicter():
 
         # Test the model
         start_time = time.time()
-        test_normal_results, normal_errors = self.unsupervised_helper(model, test_normal_loader, vocab, 'test_normal', scale=scale, min_len=self.min_len)
-        test_abnormal_results, abnormal_errors = self.unsupervised_helper(model, test_abnormal_loader, vocab, 'test_abnormal', scale=scale, min_len=self.min_len)
+        test_normal_results, normal_errors = self.unsupervised_helper(model, test_normal_loader, vocab, 'test_normal',
+                                                                      scale=scale, min_len=self.min_len)
+        test_abnormal_results, abnormal_errors = self.unsupervised_helper(model, test_abnormal_loader, vocab,
+                                                                          'test_abnormal', scale=scale,
+                                                                          min_len=self.min_len)
 
         print("Saving test normal results", self.model_dir + "test_normal_results")
         with open(self.model_dir + "test_normal_results", "wb") as f:
@@ -232,11 +221,15 @@ class Predicter():
 
         TH, TP, TN, FP, FN, P, R, F1 = self.find_best_threshold(test_normal_results,
                                                                 test_abnormal_results,
-                                                                threshold_range=np.arange(10))
+                                                                threshold_range=[i for i in
+                                                                                 range(0, self.num_candidates + 1)])
+        FPR = FP / (FP + TN)
+        FNR = FN / (TP + FN)
+        SP = TN / (TN + FP)
         print('Best threshold', TH)
         print("Confusion matrix")
-        print("TP: {}, TN: {}, FP: {}, FN: {}".format(TP, TN, FP, FN))
-        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%'.format(P, R, F1))
+        print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
 
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))
@@ -254,58 +247,100 @@ class Predicter():
     def predict_supervised(self):
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
-        if self.model_name == "deeplog":
-            lstm_model = deeplog
-        elif self.model_name == "loganomaly":
-            lstm_model = loganomaly
+        if self.model_name == "neurallog":
+            model = TransformerClassification(num_encoder_layers=self.num_encoder_layers,
+                                              num_decoder_layers=self.num_decoder_layers,
+                                              dim_model=self.dim_model,
+                                              num_heads=self.num_heads,
+                                              dim_feedforward=self.dim_feedforward,
+                                              droput=self.transformers_dropout).to(self.device)
+        elif self.model_name == "cnn":
+            model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
         else:
             lstm_model = robustlog
 
-        model_init = lstm_model(input_size=self.input_size,
-                                hidden_size=self.hidden_size,
-                                num_layers=self.num_layers,
-                                vocab_size=len(vocab),
-                                embedding_dim=self.embedding_dim)
-        model = model_init.to(self.device)
+            model_init = lstm_model(input_size=self.input_size,
+                                    hidden_size=self.hidden_size,
+                                    num_layers=self.num_layers,
+                                    vocab_size=len(vocab),
+                                    embedding_dim=self.embedding_dim)
+            model = model_init.to(self.device)
         model.load_state_dict(torch.load(self.model_path)['state_dict'])
         model.eval()
         print('model_path: {}'.format(self.model_path))
-        test_logs, test_labels = session_window(self.data_dir,
-                                                datatype='test',
-                                                vocab=vocab,
-                                                train_ratio=1,
-                                                e_name=self.embeddings)
-            # session_window(self.output_dir, datatype='test')
-        x = test_logs['Semantics']
-        y = test_labels
-        with open("bgl-robustlog-test.pkl", mode="wb") as f:
-            pickle.dump((x, y), f)
-        test_dataset = log_dataset(logs=test_logs,
-                                   labels=test_labels,
-                                   seq=self.sequentials,
-                                   quan=self.quantitatives,
-                                   sem=self.semantics)
-        self.test_loader = DataLoader(test_dataset,
-                                      batch_size=self.batch_size,
-                                      shuffle=False,
-                                      pin_memory=True)
-        tbar = tqdm(self.test_loader, desc="\r")
-        TP, FP, FN, TN = 0, 0, 0, 0
-        for i, (log, label) in enumerate(tbar):
-            features = []
-            for value in log.values():
-                features.append(value.clone().to(self.device))
-            output, _ = model(features=features, device=self.device)
-            output = output.squeeze()
-            predicted = torch.argmax(output, dim=1).cpu().numpy()
-            label = np.array([y.cpu() for y in label])
-            TP += ((predicted == 1) * (label == 1)).sum()
-            FP += ((predicted == 1) * (label == 0)).sum()
-            FN += ((predicted == 0) * (label == 1)).sum()
-            TN += ((predicted == 0) * (label == 0)).sum()
+
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
+        print(len(test_normal_loader), len(test_abnormal_loader))
+        start_time = time.time()
+        data_iter = [line for line in test_normal_loader if len(line[0]) >= self.min_len]
+        test_results = [0] * len(data_iter)
+        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
+        dataset = log_dataset(logs=logs,
+                              labels=labels,
+                              seq=self.sequentials,
+                              quan=self.quantitatives,
+                              sem=self.semantics,
+                              param=self.parameters)
+        data_loader = DataLoader(dataset,
+                                 batch_size=min(len(dataset), 4096),
+                                 shuffle=True,
+                                 pin_memory=False)
+        tbar = tqdm(data_loader, desc="\r")
+        with torch.no_grad():
+            for _, (log, label) in enumerate(tbar):
+                features = []
+                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+
+                output, _ = model(features=features, device=self.device)
+
+                for i in range(len(seq_idx)):
+                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
+                                               torch.argsort(output[i])[-1].clone().detach().cpu()
+        FP = sum(test_results)
+        TN = len(test_results) - FP
+
+        data_iter = [line for line in test_abnormal_loader if len(line[0]) >= self.min_len]
+        test_results = [0] * len(data_iter)
+        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False,
+                                      data_dir=self.data_dir)
+        dataset = log_dataset(logs=logs,
+                              labels=labels,
+                              seq=self.sequentials,
+                              quan=self.quantitatives,
+                              sem=self.semantics,
+                              param=self.parameters)
+        data_loader = DataLoader(dataset,
+                                 batch_size=min(len(dataset), 4096),
+                                 shuffle=True,
+                                 pin_memory=False)
+        tbar = tqdm(data_loader, desc="\r")
+        with torch.no_grad():
+            for _, (log, label) in enumerate(tbar):
+                features = []
+                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+
+                output, _ = model(features=features, device=self.device)
+
+                for i in range(len(seq_idx)):
+                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
+                                               torch.argsort(output[i])[-1].clone().detach().cpu()
+        TP = sum(test_results)
+        FN = len(test_results) - TP
         P = 100 * TP / (TP + FP)
         R = 100 * TP / (TP + FN)
         F1 = 2 * P * R / (P + R)
-        print(
-            'false positive (FP): {}, false negative (FN): {}, Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%'
-            .format(FP, FN, P, R, F1))
+        FPR = FP / (FP + TN)
+        FNR = FN / (TP + FN)
+        SP = TN / (TN + FP)
+        print("Confusion matrix")
+        print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+
+        elapsed_time = time.time() - start_time
+        print('elapsed_time: {}'.format(elapsed_time))

@@ -21,6 +21,7 @@ class log_dataset(Dataset):
             self.Semantics = logs['Semantics']
         if self.param:
             self.Parameters = logs['Parameters']
+        self.idxs = logs['idx']
         self.labels = labels
 
     def __len__(self):
@@ -37,9 +38,12 @@ class log_dataset(Dataset):
         if self.sem:
             log['Semantics'] = torch.tensor(self.Semantics[idx],
                                             dtype=torch.float)
+
         if self.param:
             log['Parameters'] = torch.tensor(self.Parameters[idx],
                                              dtype=torch.float)
+        # print(log['Semantics'].shape)
+        log['idx'] = self.idxs[idx]
         return log, self.labels[idx]
 
 

@@ -15,23 +15,28 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.utils import shuffle
 
 from logbert.logdeep.dataset.log import log_dataset
-from logbert.logdeep.dataset.sample import sliding_window, session_window, split_features
+from logbert.logdeep.dataset.sample import sliding_window, load_features
 from logbert.logdeep.tools.utils import plot_train_valid_loss
 from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
+from logbert.logdeep.models.cnn import TextCNN
+from logbert.neural_log.transformers import TransformerClassification
 
 
 class Trainer():
     def __init__(self, options):
         self.model_name = options['model_name']
         self.model_dir = options['model_dir']
-        self.data_dir = options['data_dir']
+        self.data_dir = options['output_dir']
         self.vocab_path = options["vocab_path"]
         self.scale_path = options["scale_path"]
+        self.emb_dir = options['data_dir']
 
         self.window_size = options['window_size']
         self.min_len = options["min_len"]
+        self.seq_len = options["seq_len"]
         self.history_size = options['history_size']
 
         self.input_size = options["input_size"]
@@ -60,6 +65,21 @@ class Trainer():
         self.is_logkey = options["is_logkey"]
         self.is_time = options["is_time"]
 
+        # transformers' parameters
+        self.num_encoder_layers = options["num_encoder_layers"]
+        self.num_decoder_layers = options["num_decoder_layers"]
+        self.dim_model = options["dim_model"]
+        self.num_heads = options["num_heads"]
+        self.dim_feedforward = options["dim_feedforward"]
+        self.transformers_dropout = options["transformers_dropout"]
+        self.random_sample = options["random_sample"]
+
+        # detection model: predict the next log or classify normal/abnormal
+        if self.model_name == "cnn" or self.model_name == "logrobust":
+            self.is_predict_logkey = False
+        else:
+            self.is_predict_logkey = True
+
         self.early_stopping = False
         self.epochs_no_improve = 0
         self.criterion = None
@@ -70,35 +90,26 @@ class Trainer():
 
         if self.sample == 'sliding_window':
             print("Loading train dataset\n")
-            logkeys, times = split_features(self.data_dir + "train",
-                                            self.train_ratio,
-                                            scale=None,
-                                            scale_path=self.scale_path,
-                                            min_len=self.min_len)
+            data = load_features(self.data_dir + "train.pkl", only_normal=self.is_predict_logkey)
+            n_train = int(len(data) * self.train_ratio)
+            train_logs, valid_logs = data[:n_train], data[n_train:]
 
-            train_logkeys, valid_logkeys, train_times, valid_times = train_test_split(logkeys, times,
-                                                                                      test_size=self.valid_ratio)
-
-            train_logs, train_labels = sliding_window((train_logkeys, train_times),
+            train_logs, train_labels = sliding_window(train_logs,
                                                       vocab=vocab,
                                                       window_size=self.history_size,
+                                                      data_dir=self.emb_dir,
+                                                      is_predict_logkey=self.is_predict_logkey
                                                       )
 
-            val_logs, val_labels = sliding_window((valid_logkeys, valid_times),
+            val_logs, val_labels = sliding_window(valid_logs,
                                                   vocab=vocab,
                                                   window_size=self.history_size,
+                                                  data_dir=self.emb_dir,
+                                                  is_predict_logkey=self.is_predict_logkey
                                                   )
-            del train_logkeys, train_times
-            del valid_logkeys, valid_times
+            del data, n_train
             # del vocab
             gc.collect()
-
-        elif self.sample == 'session_window':
-            (train_logs, train_labels), (val_logs, val_labels) = session_window(self.data_dir,
-                                                                                datatype='train',
-                                                                                vocab=vocab,
-                                                                                train_ratio=self.train_ratio,
-                                                                                e_name=self.embeddings)
         else:
             raise NotImplementedError
 
@@ -122,11 +133,11 @@ class Trainer():
         self.train_loader = DataLoader(train_dataset,
                                        batch_size=self.batch_size,
                                        shuffle=True,
-                                       pin_memory=True)
+                                       pin_memory=False)
         self.valid_loader = DataLoader(valid_dataset,
                                        batch_size=self.batch_size,
                                        shuffle=False,
-                                       pin_memory=True)
+                                       pin_memory=False)
 
         self.num_train_log = len(train_dataset)
         self.num_valid_log = len(valid_dataset)
@@ -134,26 +145,37 @@ class Trainer():
         print('Find %d train logs, %d validation logs' %
               (self.num_train_log, self.num_valid_log))
 
-        if self.model_name == "deeplog":
-            lstm_model = deeplog
-        elif self.model_name == "loganomaly":
-            lstm_model = loganomaly
+        if self.model_name == "neurallog":
+            self.model = TransformerClassification(num_encoder_layers=self.num_encoder_layers,
+                                                   num_decoder_layers=self.num_decoder_layers,
+                                                   dim_model=self.dim_model,
+                                                   num_heads=self.num_heads,
+                                                   dim_feedforward=self.dim_feedforward,
+                                                   droput=self.transformers_dropout).to(self.device)
+        elif self.model_name == "cnn":
+            print(self.dim_model, self.seq_len)
+            self.model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
         else:
-            lstm_model = robustlog
+            if self.model_name == "deeplog":
+                lstm_model = deeplog
+            elif self.model_name == "loganomaly":
+                lstm_model = loganomaly
+            else:
+                lstm_model = robustlog
 
-        model_init = lstm_model(input_size=self.input_size,
-                                hidden_size=self.hidden_size,
-                                num_layers=self.num_layers,
-                                vocab_size=len(vocab),
-                                embedding_dim=self.embedding_dim)
-        self.model = model_init.to(self.device)
+            model_init = lstm_model(input_size=self.input_size,
+                                    hidden_size=self.hidden_size,
+                                    num_layers=self.num_layers,
+                                    vocab_size=len(vocab),
+                                    embedding_dim=self.embedding_dim)
+            self.model = model_init.to(self.device)
 
         if options['optimizer'] == 'sgd':
             self.optimizer = torch.optim.SGD(self.model.parameters(),
                                              lr=options['lr'],
                                              momentum=0.9)
         elif options['optimizer'] == 'adam':
-            self.optimizer = torch.optim.AdamW(
+            self.optimizer = torch.optim.Adam(
                 self.model.parameters(),
                 lr=options['lr'],
                 betas=(0.9, 0.999),
@@ -232,26 +254,19 @@ class Trainer():
         total_log = 0
         for i, (log, label) in enumerate(tbar):
             features = []
+            del log['idx']
             for value in log.values():
                 features.append(value.clone().detach().to(self.device))
             # output is log key and timestamp
-            output0, output1 = self.model(features=features, device=self.device)
-            output0, output1 = output0.squeeze(), output1.squeeze()
-            try:
-                label0, label1 = label
-            except:
-                label0, label1 = label, label
-            label0 = label0.view(-1).to(self.device)
-            label1 = label1.view(-1).to(self.device).float()
+            output, _ = self.model(features=features, device=self.device)
 
-            predicted = output0.argmax(dim=1).cpu().numpy()
-            label = np.array([y.cpu() for y in label0])
+            label = label.view(-1).to(self.device)
+            loss = self.criterion(output, label)
+
+            predicted = output.argmax(dim=1).cpu().numpy()
+            label = np.array([y.cpu() for y in label])
             acc += (predicted == label).sum()
             total_log += len(label)
-
-            loss0 = 0 if not self.is_logkey else self.criterion(output0, label0)
-            loss1 = 0 if not self.is_time else self.time_criterion(output1, label1)
-            loss = loss0 + loss1
 
             total_losses += float(loss)
             loss /= self.accumulation_step
@@ -260,7 +275,8 @@ class Trainer():
             if (i + 1) % self.accumulation_step == 0:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-            tbar.set_description("Train loss: {0:.5f} - Train acc: {1:.2f}".format(total_losses / (i + 1), acc / total_log))
+            tbar.set_description(
+                "Train loss: {0:.5f} - Train acc: {1:.2f}".format(total_losses / (i + 1), acc / total_log))
 
         self.log['train']['loss'].append(total_losses / num_batch)
 
@@ -278,33 +294,21 @@ class Trainer():
         tbar = tqdm(self.valid_loader, desc="\r")
         num_batch = len(self.valid_loader)
 
-        errors = []
         for i, (log, label) in enumerate(tbar):
             with torch.no_grad():
                 features = []
+                del log['idx']
                 for value in log.values():
                     features.append(value.clone().detach().to(self.device))
-                output0, output1 = self.model(features=features, device=self.device)
-                output0, output1 = output0.squeeze(), output1.squeeze()
-                try:
-                    label0, label1 = label
-                except:
-                    label0, label1 = label, label
-                label0 = label0.view(-1).to(self.device)
-                label1 = label1.view(-1).to(self.device).float()
-                predicted = output0.argmax(dim=1).cpu().numpy()
-                label = np.array([y.cpu() for y in label0])
+                output, _ = self.model(features=features, device=self.device)
+
+                label = label.view(-1).to(self.device)
+                loss = 0 if not self.is_logkey else self.criterion(output, label)
+
+                predicted = output.argmax(dim=1).cpu().numpy()
+                label = np.array([y.cpu() for y in label])
                 acc += (predicted == label).sum()
                 total_log += len(label)
-                # print(label0.shape)
-
-                loss0 = 0 if not self.is_logkey else self.criterion(output0, label0)
-                loss1 = 0 if not self.is_time else self.time_criterion(output1, label1)
-                loss = loss0 + loss1
-
-                if self.is_time:
-                    error = output1.detach().clone().cpu().numpy() - label1.detach().clone().cpu().numpy()
-                    errors = np.concatenate((errors, error))
 
                 total_losses += float(loss)
         print("\nValidation loss:", total_losses / num_batch, "Validation accuracy:", acc / total_log)
@@ -326,12 +330,6 @@ class Trainer():
         if self.epochs_no_improve == self.n_epochs_stop:
             self.early_stopping = True
             print("Early stopping")
-
-        # print("The Gaussian distribution of predicted errors, --mean {:.4f} --std {:.4f}".format(mean, std))
-        # sns_plot = sns.kdeplot(errors)
-        # sns_plot.get_figure().savefig(self.model_dir + "valid_error_dist.png")
-        # plt.close()
-        # print("validation error distribution saved")
 
     def start_train(self):
         for epoch in range(self.start_epoch, self.max_epoch):
