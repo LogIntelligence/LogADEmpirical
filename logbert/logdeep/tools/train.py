@@ -9,18 +9,22 @@ import pickle
 import os
 import gc
 
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, Sampler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
+from sklearn.ensemble import IsolationForest as iForest
 
 from logbert.logdeep.dataset.log import log_dataset
 from logbert.logdeep.dataset.sample import sliding_window, load_features
 from logbert.logdeep.tools.utils import plot_train_valid_loss
 from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
+from logbert.logdeep.models.autoencoder import AutoEncoder
 from logbert.logdeep.models.cnn import TextCNN
 from logbert.neural_log.transformers import TransformerClassification
 
@@ -29,6 +33,7 @@ class Trainer():
     def __init__(self, options):
         self.model_name = options['model_name']
         self.model_dir = options['model_dir']
+        self.model_path = options['model_path']
         self.data_dir = options['output_dir']
         self.vocab_path = options["vocab_path"]
         self.scale_path = options["scale_path"]
@@ -75,7 +80,7 @@ class Trainer():
         self.random_sample = options["random_sample"]
 
         # detection model: predict the next log or classify normal/abnormal
-        if self.model_name == "cnn" or self.model_name == "logrobust":
+        if self.model_name == "cnn" or self.model_name == "logrobust" or self.model_name == "autoencoder":
             self.is_predict_logkey = False
         else:
             self.is_predict_logkey = True
@@ -98,14 +103,16 @@ class Trainer():
                                                       vocab=vocab,
                                                       window_size=self.history_size,
                                                       data_dir=self.emb_dir,
-                                                      is_predict_logkey=self.is_predict_logkey
+                                                      is_predict_logkey=self.is_predict_logkey,
+                                                      semantics=self.semantics
                                                       )
 
             val_logs, val_labels = sliding_window(valid_logs,
                                                   vocab=vocab,
                                                   window_size=self.history_size,
                                                   data_dir=self.emb_dir,
-                                                  is_predict_logkey=self.is_predict_logkey
+                                                  is_predict_logkey=self.is_predict_logkey,
+                                                  semantics=self.semantics
                                                   )
             del data, n_train
             # del vocab
@@ -144,6 +151,7 @@ class Trainer():
 
         print('Find %d train logs, %d validation logs' %
               (self.num_train_log, self.num_valid_log))
+        self.threshold_rate = self.num_train_log // self.num_valid_log
 
         if self.model_name == "neurallog":
             self.model = TransformerClassification(num_encoder_layers=self.num_encoder_layers,
@@ -155,6 +163,9 @@ class Trainer():
         elif self.model_name == "cnn":
             print(self.dim_model, self.seq_len)
             self.model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
+        elif self.model_name == "autoencoder":
+            self.model = AutoEncoder(self.hidden_size, self.num_layers, embedding_dim=self.embedding_dim).to(
+                self.device)
         else:
             if self.model_name == "deeplog":
                 lstm_model = deeplog
@@ -259,24 +270,36 @@ class Trainer():
                 features.append(value.clone().detach().to(self.device))
             # output is log key and timestamp
             output, _ = self.model(features=features, device=self.device)
+            if isinstance(output, dict):
+                loss = output['loss']
+                total_log += len(label)
 
-            label = label.view(-1).to(self.device)
-            loss = self.criterion(output, label)
+                total_losses += float(loss)
+                loss /= self.accumulation_step
+                loss.backward()
+                if (i + 1) % self.accumulation_step == 0:
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
+                tbar.set_description(
+                    "Train loss: {0:.5f}".format(total_losses / (i + 1)))
+            else:
+                label = label.view(-1).to(self.device)
+                loss = self.criterion(output, label)
 
-            predicted = output.argmax(dim=1).cpu().numpy()
-            label = np.array([y.cpu() for y in label])
-            acc += (predicted == label).sum()
-            total_log += len(label)
+                predicted = output.argmax(dim=1).cpu().numpy()
+                label = np.array([y.cpu() for y in label])
+                acc += (predicted == label).sum()
+                total_log += len(label)
 
-            total_losses += float(loss)
-            loss /= self.accumulation_step
-            loss.backward()
+                total_losses += float(loss)
+                loss /= self.accumulation_step
+                loss.backward()
 
-            if (i + 1) % self.accumulation_step == 0:
-                self.optimizer.step()
-                self.optimizer.zero_grad()
-            tbar.set_description(
-                "Train loss: {0:.5f} - Train acc: {1:.2f}".format(total_losses / (i + 1), acc / total_log))
+                if (i + 1) % self.accumulation_step == 0:
+                    self.optimizer.step()
+                    self.optimizer.zero_grad()
+                tbar.set_description(
+                    "Train loss: {0:.5f} - Train acc: {1:.2f}".format(total_losses / (i + 1), acc / total_log))
 
         self.log['train']['loss'].append(total_losses / num_batch)
 
@@ -301,17 +324,22 @@ class Trainer():
                 for value in log.values():
                     features.append(value.clone().detach().to(self.device))
                 output, _ = self.model(features=features, device=self.device)
+                if isinstance(output, dict):
+                    loss = output['loss']
+                else:
+                    label = label.view(-1).to(self.device)
+                    loss = 0 if not self.is_logkey else self.criterion(output, label)
 
-                label = label.view(-1).to(self.device)
-                loss = 0 if not self.is_logkey else self.criterion(output, label)
-
-                predicted = output.argmax(dim=1).cpu().numpy()
-                label = np.array([y.cpu() for y in label])
-                acc += (predicted == label).sum()
-                total_log += len(label)
+                    predicted = output.argmax(dim=1).cpu().numpy()
+                    label = np.array([y.cpu() for y in label])
+                    acc += (predicted == label).sum()
+                    total_log += len(label)
 
                 total_losses += float(loss)
-        print("\nValidation loss:", total_losses / num_batch, "Validation accuracy:", acc / total_log)
+        if total_log:
+            print("\nValidation loss:", total_losses / num_batch, "Validation accuracy:", acc / total_log)
+        else:
+            print("\nValidation loss:", total_losses / num_batch)
         self.log['valid']['loss'].append(total_losses / num_batch)
 
         if total_losses / num_batch < self.best_loss:
@@ -330,13 +358,118 @@ class Trainer():
         if self.epochs_no_improve == self.n_epochs_stop:
             self.early_stopping = True
             print("Early stopping")
+        return total_losses / num_batch
+
+    def train_autoencoder2(self):
+        print("Compute representation of log sequences...")
+        reprs = []
+        logs = []
+        tbar = tqdm(self.valid_loader, desc="\r")
+        self.model.load_state_dict(torch.load(self.model_path)['state_dict'])
+        self.model.eval()
+        for i, (log, label) in enumerate(tbar):
+            with torch.no_grad():
+                logs.extend([dict(zip(log, t)) for t in zip(*log.values())])
+                features = []
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+                output, _ = self.model(features=features, device=self.device)
+                reprs.extend(output['repr'].clone().detach().cpu().numpy().tolist())
+        reprs = np.array(reprs)
+        print("Find normal logs...")
+        iforest = iForest(n_estimators=100, max_samples="auto", contamination="auto", verbose=1)
+        iforest.fit(reprs)
+        y_pred = iforest.predict(reprs)
+        y_pred = np.where(y_pred > 0, 0, 1)
+        ids = [i for i in range(len(y_pred)) if y_pred[i] == 0]
+        print(len(ids))
+        normal_logs = [log for i, log in enumerate(logs) if i in ids]
+        print(len(normal_logs))
+        # print(normal_logs[0])
+
+        print("Train second autoencoder...")
+        model = AutoEncoder(self.hidden_size, self.num_layers, embedding_dim=self.embedding_dim).to(self.device)
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=0.01,
+            betas=(0.9, 0.999),
+        )
+
+        class AEDataset(Dataset):
+            def __init__(self, logs):
+                self.logs = logs
+
+            def __len__(self):
+                return len(self.logs)
+
+            def __getitem__(self, idx):
+                return self.logs[idx]
+
+        dataset = AEDataset(normal_logs)
+        loader = DataLoader(dataset,
+                            batch_size=self.batch_size,
+                            shuffle=True,
+                            pin_memory=False)
+
+        model.train()
+        optimizer.zero_grad()
+
+        total_losses = 0
+        best_loss = 1e10
+        best_model = None
+        epochs_no_improve = 0
+        for epoch in range(0, self.max_epoch):
+            if epochs_no_improve >= self.n_epochs_stop:
+                break
+            print("Epoch {}...".format(epoch + 1))
+            tbar = tqdm(loader, desc="\r")
+            for i, log in enumerate(tbar):
+                features = []
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+                # output is log key and timestamp
+                output, _ = model(features=features, device=self.device)
+                loss = output['loss']
+
+                total_losses += float(loss)
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+                tbar.set_description(
+                    "Train loss: {0:.5f}".format(total_losses / (i + 1)))
+            if total_losses < best_loss:
+                best_loss = total_losses
+                best_model = model
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+        recst_value = []
+        model.eval()
+        print("Compute threshold...")
+        for i, log in enumerate(tbar):
+            features = []
+            del log['idx']
+            for value in log.values():
+                features.append(value.clone().detach().to(self.device))
+            # output is log key and timestamp
+            output, _ = model(features=features, device=self.device)
+            y_pred = output['y_pred']
+            recst_value.extend(y_pred.clone().detach().cpu().numpy().tolist())
+        from statistics import stdev
+        return best_model, stdev(recst_value) * self.threshold_rate
 
     def start_train(self):
+        val_loss = 0
+        n_epoch = 0
         for epoch in range(self.start_epoch, self.max_epoch):
             if self.early_stopping:
                 break
             self.train(epoch)
-            self.valid(epoch)
+            n_epoch += 1
+            val_loss += self.valid(epoch)
             self.save_log()
-
         plot_train_valid_loss(self.model_dir)
+        if self.model_name == "autoencoder":
+            return self.train_autoencoder2()

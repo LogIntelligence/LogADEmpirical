@@ -8,6 +8,7 @@ from logbert.logrobust import run_logrobust
 from logbert.neurallog import run_neurallog
 from logbert.cnn import run_cnn
 from logbert.bert import run_logbert
+from logbert.autoencoder import run_autoencoder
 from logbert.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
@@ -23,7 +24,7 @@ def arg_parser():
     parser = ArgumentParser()
     parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly",
                                                                               "logrobust", "baseline", "neurallog",
-                                                                              "cnn"])
+                                                                              "cnn", "autoencoder"])
     parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
                                                                                 "bgl_2k", "tdb", "spirit", "bo",
                                                                                 "bgl2", "hadoop"])
@@ -104,7 +105,7 @@ def arg_parser():
     # Features
     parser.add_argument("--sequentials", default=True, help="sequences of logkeys")
     parser.add_argument("--quantitatives", default=True, help="logkey count vector")
-    parser.add_argument("--semantics", default=True, action='store_true', help="logkey embedding with semantics "
+    parser.add_argument("--semantics", default=False, action='store_true', help="logkey embedding with semantics "
                                                                                 "vectors")
     parser.add_argument("--parameters", default=False, help="include paramters in logs after parsing such time")
 
@@ -193,6 +194,8 @@ def main():
         run_neurallog(options)
     elif args.model_name == "cnn":
         run_cnn(options)
+    elif args.model_name == "autoencoder":
+        run_autoencoder(options)
     elif args.model_name == "baseline":
         pass
     else:

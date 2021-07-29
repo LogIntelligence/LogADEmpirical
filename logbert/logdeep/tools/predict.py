@@ -19,6 +19,7 @@ from logbert.logdeep.dataset.log import log_dataset
 from logbert.logdeep.dataset.sample import sliding_window
 from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
 from logbert.logdeep.models.cnn import TextCNN
+from logbert.logdeep.models.autoencoder import AutoEncoder
 from logbert.neural_log.transformers import TransformerClassification
 
 
@@ -135,7 +136,7 @@ class Predicter():
                 res = [th, TP, TN, FP, FN, P, R, F1]
         return res
 
-    def unsupervised_helper(self, model, data_iter, vocab, data_type, scale=None, min_len=0):
+    def semi_supervised_helper(self, model, data_iter, vocab, data_type, scale=None, min_len=0):
         normal_errors = []
 
         num_test = len(data_iter)
@@ -174,7 +175,7 @@ class Predicter():
             # print(test_results)
             return test_results, normal_errors
 
-    def predict_unsupervised(self):
+    def predict_semi_supervised(self):
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
 
@@ -205,9 +206,9 @@ class Predicter():
 
         # Test the model
         start_time = time.time()
-        test_normal_results, normal_errors = self.unsupervised_helper(model, test_normal_loader, vocab, 'test_normal',
+        test_normal_results, normal_errors = self.semi_supervised_helper(model, test_normal_loader, vocab, 'test_normal',
                                                                       scale=scale, min_len=self.min_len)
-        test_abnormal_results, abnormal_errors = self.unsupervised_helper(model, test_abnormal_loader, vocab,
+        test_abnormal_results, abnormal_errors = self.semi_supervised_helper(model, test_abnormal_loader, vocab,
                                                                           'test_abnormal', scale=scale,
                                                                           min_len=self.min_len)
 
@@ -330,6 +331,88 @@ class Predicter():
                 for i in range(len(seq_idx)):
                     test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
                                                torch.argsort(output[i])[-1].clone().detach().cpu()
+        TP = sum(test_results)
+        FN = len(test_results) - TP
+        P = 100 * TP / (TP + FP)
+        R = 100 * TP / (TP + FN)
+        F1 = 2 * P * R / (P + R)
+        FPR = FP / (FP + TN)
+        FNR = FN / (TP + FN)
+        SP = TN / (TN + FP)
+        print("Confusion matrix")
+        print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+
+        elapsed_time = time.time() - start_time
+        print('elapsed_time: {}'.format(elapsed_time))
+
+    def predict_unsupervised(self, model, threshold=2e-7):
+        with open(self.vocab_path, 'rb') as f:
+            vocab = pickle.load(f)
+        model.eval()
+        # print('model_path: {}'.format(self.model_path))
+
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
+        print(len(test_normal_loader), len(test_abnormal_loader))
+        start_time = time.time()
+        data_iter = [line for line in test_normal_loader if len(line[0]) >= self.min_len]
+        test_results = [0] * len(data_iter)
+        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
+        dataset = log_dataset(logs=logs,
+                              labels=labels,
+                              seq=self.sequentials,
+                              quan=self.quantitatives,
+                              sem=self.semantics,
+                              param=self.parameters)
+        data_loader = DataLoader(dataset,
+                                 batch_size=min(len(dataset), 4096),
+                                 shuffle=True,
+                                 pin_memory=False)
+        tbar = tqdm(data_loader, desc="\r")
+        with torch.no_grad():
+            for _, (log, label) in enumerate(tbar):
+                features = []
+                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+
+                output, _ = model(features=features, device=self.device)
+
+                for i in range(len(seq_idx)):
+                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
+                                               output['y_pred'][i].clone().detach().cpu() > threshold
+        FP = sum(test_results)
+        TN = len(test_results) - FP
+
+        data_iter = [line for line in test_abnormal_loader if len(line[0]) >= self.min_len]
+        test_results = [0] * len(data_iter)
+        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False,
+                                      data_dir=self.data_dir)
+        dataset = log_dataset(logs=logs,
+                              labels=labels,
+                              seq=self.sequentials,
+                              quan=self.quantitatives,
+                              sem=self.semantics,
+                              param=self.parameters)
+        data_loader = DataLoader(dataset,
+                                 batch_size=min(len(dataset), 4096),
+                                 shuffle=True,
+                                 pin_memory=False)
+        tbar = tqdm(data_loader, desc="\r")
+        with torch.no_grad():
+            for _, (log, label) in enumerate(tbar):
+                features = []
+                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                del log['idx']
+                for value in log.values():
+                    features.append(value.clone().detach().to(self.device))
+
+                output, _ = model(features=features, device=self.device)
+
+                for i in range(len(seq_idx)):
+                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
+                                               output['y_pred'][i].clone().detach().cpu() > threshold
         TP = sum(test_results)
         FN = len(test_results) - TP
         P = 100 * TP / (TP + FP)

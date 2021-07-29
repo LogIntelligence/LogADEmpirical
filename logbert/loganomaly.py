@@ -14,11 +14,5 @@ def run_loganomaly(options):
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
 
-    # model = loganomaly(input_size=options['input_size'],
-    #                 hidden_size=options['hidden_size'],
-    #                 num_layers=options['num_layers'],
-    #                 vocab_size=options["vocab_size"],
-    #                 embedding_dim=options["embedding_dim"])
-
     Trainer(options).start_train()
-    Predicter(options).predict_unsupervised()
+    Predicter(options).predict_semi_supervised()

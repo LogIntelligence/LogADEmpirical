@@ -7,7 +7,7 @@ from logbert.logdeep.tools.train import Trainer
 from logbert.logdeep.dataset.vocab import Vocab
 
 
-def run_deeplog(options):
+def run_autoencoder(options):
     if not os.path.exists(options["vocab_path"]):
         with open(options["train_vocab"], 'rb') as f:
             data = pickle.load(f)
@@ -17,5 +17,5 @@ def run_deeplog(options):
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
 
-    Trainer(options).start_train()
-    Predicter(options).predict_semi_supervised()
+    model, threshold = Trainer(options).start_train()
+    Predicter(options).predict_unsupervised(model, threshold)

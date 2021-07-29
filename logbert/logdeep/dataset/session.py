@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 def session_window(raw_data, id_regex, label_dict):
     data_dict = defaultdict(list)
-    for idx, row in tqdm(raw_data.iterrows()):
+    raw_data = raw_data.to_dict("records")
+    for idx, row in tqdm(enumerate(raw_data)):
         blkId_list = re.findall(id_regex, row['Content'])
         blkId_set = set(blkId_list)
         for blk_Id in blkId_set:

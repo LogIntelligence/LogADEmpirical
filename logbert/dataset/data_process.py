@@ -121,7 +121,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
         label_dict = {}
         blk_label_file = os.path.join(data_dir, "anomaly_label.csv")
         blk_df = pd.read_csv(blk_label_file)
-        for _, row in tqdm(blk_df.iterrows()):
+        for _, row in tqdm(enumerate(blk_df.to_dict("records"))):
             label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
         window_df = session_window(df, id_regex, label_dict)

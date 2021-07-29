@@ -90,7 +90,7 @@ def load_features(data_path, only_normal=True, min_len=0):
 
 
 def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="dataset/", is_predict_logkey=True,
-                   e_name="embeddings.json"):
+                   e_name="embeddings.json", semantics=True):
     '''
     dataset structure
         result_logs(dict):
@@ -140,21 +140,24 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
             seq = line[i: i + window_size].copy()
             if is_predict_logkey:
                 seq.append(line[i + window_size])
-            else:
-                seq.append(label)
             seq = map(lambda k: str(k), seq)
             seq = " ".join(seq)
             if seq in duplicate_seq.keys():
+                if not is_predict_logkey:
+                    pos = duplicate_seq[seq]
+                    if labels[pos] != label:
+                        labels[pos] = 0
                 continue
 
-            duplicate_seq[seq] = 1
+            duplicate_seq[seq] = len(labels)
             Sequential_pattern = line[i:i + window_size].copy()
             Semantic_pattern = []
-            for event in orig_line[i:i + window_size].copy():
-                if event == "0":
-                    Semantic_pattern.append([-1] * 300)
-                else:
-                    Semantic_pattern.append(event2semantic_vec[event])
+            if semantics:
+                for event in orig_line[i:i + window_size].copy():
+                    if event == "0":
+                        Semantic_pattern.append([-1] * 300)
+                    else:
+                        Semantic_pattern.append(event2semantic_vec[event])
 
             Quantitative_pattern = [0] * num_classes
             log_counter = Counter(Sequential_pattern)
