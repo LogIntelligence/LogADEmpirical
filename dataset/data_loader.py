@@ -189,7 +189,7 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
             event_ids = []
             events = []
             contents = []
-            label = session['label'].lower()
+            label = session['label'] == "Anomaly"
             print(l, r)
             for j in range(l, r):
                 event_id = structured_logs[j]['EventId']
@@ -199,9 +199,10 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
                 events.append(event)
                 contents.append(content)
 
-            x.append(parse_instance(events.copy(), None, label, event_ids=event_ids.copy(),
-                                    messages=contents.copy(),
-                                    confidence=1))
+            x.append({"SessionId": len(x), "EventId": events.copy(), "Label": label})
+                # parse_instance(events.copy(), None, label, event_ids=event_ids.copy(),
+                #                     messages=contents.copy(),
+                #                     confidence=1))
             i = r
 
     x = shuffle(x)
@@ -209,14 +210,14 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
     x_tr = x[:n_train]
     x_te = x[n_train:]
 
-    num_total = len([instance.is_anomaly for instance in x])
-    num_pos = sum([instance.is_anomaly for instance in x])
+    num_total = len([instance["Label"] for instance in x])
+    num_pos = sum([instance["Label"] for instance in x])
 
-    num_train = len([instance.is_anomaly for instance in x_tr])
-    num_train_pos = sum([instance.is_anomaly for instance in x_tr])
+    num_train = len([instance["Label"] for instance in x_tr])
+    num_train_pos = sum([instance["Label"] for instance in x_tr])
 
-    num_test = len([instance.is_anomaly for instance in x_te])
-    num_test_pos = sum([instance.is_anomaly for instance in x_te])
+    num_test = len([instance["Label"] for instance in x_te])
+    num_test_pos = sum([instance["Label"] for instance in x_te])
 
     print('Total: {} instances, {} anomaly, {} normal' \
           .format(num_total, num_pos, num_total - num_pos))
@@ -228,13 +229,16 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
 
 
 if __name__ == '__main__':
-    x_tr, x_te = load_fixed_windows_instances(
-        "../../LogVectorization/logparser/benchmark/Spell_result/BGL.log_structured.csv",
-        train_ratio=0.8,
-        window_size=20)
 
-    with open("bgl/spell_fixed20_instances.pkl", mode="wb") as f:
+    x_tr, x_te = load_Hadoop("hadoop/Hadoop.log_structured.csv", "hadoop/label.json", train_ratio=0.8)
+
+    # x_tr, x_te = load_fixed_windows_instances(
+    #     "../../LogVectorization/logparser/benchmark/Drain_result/Spirit1G.log_structured.csv",
+    #     train_ratio=0.8,
+    #     window_size=300)
+
+    with open("hadoop/train.pkl", mode="wb") as f:
         pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open("bgl/spell_fixed20_1_instances.pkl", mode="wb") as f:
+    with open("hadoop/test.pkl", mode="wb") as f:
         pickle.dump(x_te, f, protocol=pickle.HIGHEST_PROTOCOL)

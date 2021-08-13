@@ -27,17 +27,25 @@ def generate(output_dir, name):
     print("Loading", output_dir + name)
     with open(output_dir + name, 'rb') as f:
         data_iter = pickle.load(f)
-    normal_iter = []
-    abnormal_iter = []
+    normal_iter = {}
+    abnormal_iter = {}
     for seq in data_iter:
         if not isinstance(seq['Label'], int):
             label = max(seq['Label'].tolist())
         else:
             label = seq['Label']
+        key = tuple(seq['EventId'])
         if label == 0:
-            normal_iter.append((seq['EventId'], label))
+            if key not in normal_iter:
+                normal_iter[key] = 1
+            else:
+                normal_iter[key] += 1
         else:
-            abnormal_iter.append((seq['EventId'], label))
+            if key not in abnormal_iter:
+                abnormal_iter[key] = 1
+            else:
+                abnormal_iter[key] += 1
+
     return normal_iter, abnormal_iter
 
 
@@ -88,7 +96,10 @@ class Predicter():
     def detect_logkey_anomaly(self, output, label):
         num_anomaly = []
         for i in range(len(label)):
-            predicted = torch.argsort(output[i])[-self.num_candidates:].clone().detach().cpu().tolist()
+            # print(output[i])
+            # print(torch.argsort(output[i], descending=True))
+            predicted = torch.argsort(output[i], descending=True)[
+                        :self.num_candidates].clone().detach().cpu()
             # print(predicted, label[i], label[i] in predicted, predicted.index(label[i]))
             if label[i] not in predicted:
                 num_anomaly.append(self.num_candidates + 1)
@@ -104,25 +115,25 @@ class Predicter():
                 num_anomaly += 1
         return num_anomaly
 
-    def compute_anomaly(self, results, threshold=0):
+    def compute_anomaly(self, results, num, threshold=0):
+        # print(num)
         total_errors = 0
-        for seq_res in results:
-            # if isinstance(threshold, float):
-            #     threshold = seq_res["predicted_logkey"] * threshold
-            # seq_res = seq_res[1:]
-            # print(max(seq_res), min(seq_res))
-            error = seq_res > threshold
-            total_errors += int(error)
-
+        for i, line in enumerate(results):
+            for seq in line:
+                if seq[1] not in seq[0][:threshold]:
+                    total_errors += num[i]
+                    break
         return total_errors
 
-    def find_best_threshold(self, test_normal_results, test_abnormal_results, threshold_range):
-        test_abnormal_length = len(test_abnormal_results)
-        test_normal_length = len(test_normal_results)
+    def find_best_threshold(self, test_normal_results, num_normal_session_logs, test_abnormal_results,
+                            num_abnormal_session_logs, threshold_range):
+        test_abnormal_length = sum(num_abnormal_session_logs)
+        test_normal_length = sum(num_normal_session_logs)
         res = [0, 0, 0, 0, 0, 0, 0, 0]  # th,tp, tn, fp, fn,  p, r, f1
-        for th in threshold_range:
-            FP = self.compute_anomaly(test_normal_results, th)
-            TP = self.compute_anomaly(test_abnormal_results, th)
+        # print(threshold_range)
+        for th in range(threshold_range, 0, -1):
+            FP = self.compute_anomaly(test_normal_results, num_normal_session_logs, th + 1)
+            TP = self.compute_anomaly(test_abnormal_results, num_abnormal_session_logs, th + 1)
             if TP == 0:
                 continue
 
@@ -132,53 +143,44 @@ class Predicter():
             P = 100 * TP / (TP + FP)
             R = 100 * TP / (TP + FN)
             F1 = 2 * P * R / (P + R)
+            print(th + 1, FP, FN, P, R)
             if F1 > res[-1]:
                 res = [th, TP, TN, FP, FN, P, R, F1]
         return res
 
-    def semi_supervised_helper(self, model, data_iter, vocab, data_type, scale=None, min_len=0):
-        normal_errors = []
+    def semi_supervised_helper(self, model, logs, vocab, data_type, scale=None, min_len=0):
 
-        num_test = len(data_iter)
-        rand_index = torch.randperm(num_test)
-        rand_index = rand_index[:int(num_test * self.test_ratio)]
-        data_iter = [line for line in data_iter if len(line[0]) >= min_len]
-        test_results = [0] * len(data_iter)
-        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
-        dataset = log_dataset(logs=logs,
-                              labels=labels,
-                              seq=self.sequentials,
-                              quan=self.quantitatives,
-                              sem=self.semantics,
-                              param=self.parameters)
+        test_results = [[] for _ in range(len(logs))]
+        l = data_type == "test_abnormal"
+        sess_events = [(k, l) for (k, v) in logs.items()]
+        num_sess = [logs[x] for (x, l) in sess_events]
+        seqs, labels = sliding_window(sess_events, vocab, window_size=self.history_size, is_train=False,
+                                      data_dir=self.data_dir, semantics=self.semantics)
+
+        dataset = log_dataset(logs=seqs,
+                              labels=labels)
         data_loader = DataLoader(dataset,
-                                 batch_size=min(len(dataset), 4096),
+                                 batch_size=min(len(dataset), 512),
                                  shuffle=True,
-                                 pin_memory=False)
+                                 pin_memory=True)
         tbar = tqdm(data_loader, desc="\r")
         with torch.no_grad():
             for _, (log, label) in enumerate(tbar):
-                features = []
-                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                seq_idx = log['idx'].clone().detach().cpu().numpy()
                 del log['idx']
-                for value in log.values():
-                    features.append(value.clone().detach().to(self.device))
-
+                features = [x.to(self.device) for x in log['features']]
                 output, _ = model(features=features, device=self.device)
-
+                output = output.softmax(dim=-1)
+                # label = torch.tensor(label).view(-1).to(self.device)
                 if self.is_logkey:
-                    num_logkey_anomaly = self.detect_logkey_anomaly(output, label)
                     for i in range(len(seq_idx)):
-                        # if num_logkey_anomaly[i] > self.num_candidates:
-                        #     print(seq_idx[i])
-                        test_results[seq_idx[i]] = max(num_logkey_anomaly[i], test_results[seq_idx[i]])
-            # print(test_results)
-            return test_results, normal_errors
+                        test_results[seq_idx[i]].append((torch.argsort(output[i], descending=True).clone().detach().cpu(), label[i]))
+        return test_results, num_sess
 
     def predict_semi_supervised(self):
+
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
-
         if self.model_name == "deeplog":
             lstm_model = deeplog
         else:
@@ -195,35 +197,17 @@ class Predicter():
         model.eval()
         print('model_path: {}'.format(self.model_path))
 
-        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
-        print(len(test_normal_loader), len(test_abnormal_loader))
-        # print("testing normal size: {}, testing abnormal size: {}".format(test_normal_length, test_abnormal_length))
-
-        scale = None
-        if self.is_time:
-            with open(self.model_dir + "scale.pkl", "rb") as f:
-                scale = pickle.load(f)
+        test_normal, test_abnormal = generate(self.output_dir, 'test.pkl')
+        # print(len(test_normal_loader), len(test_abnormal_loader))
 
         # Test the model
         start_time = time.time()
-        test_normal_results, normal_errors = self.semi_supervised_helper(model, test_normal_loader, vocab, 'test_normal',
-                                                                      scale=scale, min_len=self.min_len)
-        test_abnormal_results, abnormal_errors = self.semi_supervised_helper(model, test_abnormal_loader, vocab,
-                                                                          'test_abnormal', scale=scale,
-                                                                          min_len=self.min_len)
+        test_normal_results, num_normal = self.semi_supervised_helper(model, test_normal, vocab, 'test_normal')
+        test_abnormal_results, num_abnormal = self.semi_supervised_helper(model, test_abnormal, vocab, 'test_abnormal')
 
-        print("Saving test normal results", self.model_dir + "test_normal_results")
-        with open(self.model_dir + "test_normal_results", "wb") as f:
-            pickle.dump(test_normal_results, f)
-
-        print("Saving test abnormal results", self.model_dir + "test_abnormal_results")
-        with open(self.model_dir + "test_abnormal_results", "wb") as f:
-            pickle.dump(test_abnormal_results, f)
-
-        TH, TP, TN, FP, FN, P, R, F1 = self.find_best_threshold(test_normal_results,
-                                                                test_abnormal_results,
-                                                                threshold_range=[i for i in
-                                                                                 range(0, self.num_candidates + 1)])
+        TH, TP, TN, FP, FN, P, R, F1 = self.find_best_threshold(test_normal_results, num_normal,
+                                                                test_abnormal_results, num_abnormal,
+                                                                threshold_range=self.num_candidates)
         FPR = FP / (FP + TN)
         FNR = FN / (TP + FN)
         SP = TN / (TN + FP)
@@ -235,27 +219,11 @@ class Predicter():
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))
 
-        if self.is_time:
-            sns.kdeplot(normal_errors, label='normal errors')
-            sns.kdeplot(abnormal_errors, label='abnormal errors')
-            x = np.linspace(self.gaussian_mean - 3 * self.gaussian_std, self.gaussian_mean + 3 * self.gaussian_std, 100)
-            plt.plot(x, stats.norm.pdf(x, self.gaussian_mean, self.gaussian_std), label='gaussian')
-            plt.legend()
-            print("save error distribution")
-            plt.savefig(self.model_dir + 'error_distrubtion.png')
-            plt.show()
-
     def predict_supervised(self):
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
-        if self.model_name == "neurallog":
-            model = TransformerClassification(num_encoder_layers=self.num_encoder_layers,
-                                              num_decoder_layers=self.num_decoder_layers,
-                                              dim_model=self.dim_model,
-                                              num_heads=self.num_heads,
-                                              dim_feedforward=self.dim_feedforward,
-                                              droput=self.transformers_dropout).to(self.device)
-        elif self.model_name == "cnn":
+
+        if self.model_name == "cnn":
             model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
         else:
             lstm_model = robustlog
@@ -273,66 +241,48 @@ class Predicter():
         test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
         print(len(test_normal_loader), len(test_abnormal_loader))
         start_time = time.time()
-        data_iter = [line for line in test_normal_loader if len(line[0]) >= self.min_len]
-        test_results = [0] * len(data_iter)
-        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
-        dataset = log_dataset(logs=logs,
-                              labels=labels,
-                              seq=self.sequentials,
-                              quan=self.quantitatives,
-                              sem=self.semantics,
-                              param=self.parameters)
-        data_loader = DataLoader(dataset,
-                                 batch_size=min(len(dataset), 4096),
-                                 shuffle=True,
-                                 pin_memory=False)
-        tbar = tqdm(data_loader, desc="\r")
+        total_normal, total_abnormal = 0, 0
+        FP = 0
+        TP = 0
         with torch.no_grad():
-            for _, (log, label) in enumerate(tbar):
-                features = []
-                seq_idx = log['idx'].clone().detach().cpu().tolist()
-                del log['idx']
-                for value in log.values():
-                    features.append(value.clone().detach().to(self.device))
-
-                output, _ = model(features=features, device=self.device)
-
-                for i in range(len(seq_idx)):
-                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
-                                               torch.argsort(output[i])[-1].clone().detach().cpu()
-        FP = sum(test_results)
-        TN = len(test_results) - FP
-
-        data_iter = [line for line in test_abnormal_loader if len(line[0]) >= self.min_len]
-        test_results = [0] * len(data_iter)
-        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False,
-                                      data_dir=self.data_dir)
-        dataset = log_dataset(logs=logs,
-                              labels=labels,
-                              seq=self.sequentials,
-                              quan=self.quantitatives,
-                              sem=self.semantics,
-                              param=self.parameters)
-        data_loader = DataLoader(dataset,
-                                 batch_size=min(len(dataset), 4096),
-                                 shuffle=True,
-                                 pin_memory=False)
-        tbar = tqdm(data_loader, desc="\r")
+            for line in tqdm(test_normal_loader.keys()):
+                logs, labels = sliding_window([(line, 0)], vocab, window_size=self.history_size, is_train=False,
+                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                dataset = log_dataset(logs=logs, labels=labels)
+                data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
+                for _, (log, label) in enumerate(data_loader):
+                    del log['idx']
+                    features = [x.to(self.device) for x in log['features']]
+                    output, _ = model(features, self.device)
+                    # print(output)
+                    output = output.softmax(dim=1)
+                    pred = torch.argsort(output, 1, descending=True)
+                    pred = pred[:, 0]
+                    # print(pred)
+                    if 1 in pred:
+                        FP += test_normal_loader[line]
+                        break
+                total_normal += test_normal_loader[line]
+        TN = total_normal - FP
         with torch.no_grad():
-            for _, (log, label) in enumerate(tbar):
-                features = []
-                seq_idx = log['idx'].clone().detach().cpu().tolist()
-                del log['idx']
-                for value in log.values():
-                    features.append(value.clone().detach().to(self.device))
-
-                output, _ = model(features=features, device=self.device)
-
-                for i in range(len(seq_idx)):
-                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
-                                               torch.argsort(output[i])[-1].clone().detach().cpu()
-        TP = sum(test_results)
-        FN = len(test_results) - TP
+            for line in tqdm(test_abnormal_loader.keys()):
+                logs, labels = sliding_window([(line, 1)], vocab, window_size=self.history_size, is_train=False,
+                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                dataset = log_dataset(logs=logs, labels=labels)
+                data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
+                for _, (log, label) in enumerate(data_loader):
+                    del log['idx']
+                    features = [x.to(self.device) for x in log['features']]
+                    output, _ = model(features, self.device)
+                    output = output.softmax(dim=1)
+                    pred = torch.argsort(output, 1, descending=True)
+                    pred = pred[:, 0]
+                    # print(pred)
+                    if 1 in pred:
+                        TP += test_abnormal_loader[line]
+                        break
+                total_abnormal += test_abnormal_loader[line]
+        FN = total_abnormal - TP
         P = 100 * TP / (TP + FP)
         R = 100 * TP / (TP + FN)
         F1 = 2 * P * R / (P + R)
@@ -346,84 +296,140 @@ class Predicter():
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))
 
-    def predict_unsupervised(self, model, threshold=2e-7):
+    def predict_unsupervised(self, model, th=3e-8):
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
+        # model = AutoEncoder(self.hidden_size, self.num_layers, embedding_dim=self.embedding_dim).to(self.device)
+        # model.load_state_dict(torch.load(self.model_path)['state_dict'])
         model.eval()
         # print('model_path: {}'.format(self.model_path))
 
         test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
         print(len(test_normal_loader), len(test_abnormal_loader))
         start_time = time.time()
-        data_iter = [line for line in test_normal_loader if len(line[0]) >= self.min_len]
-        test_results = [0] * len(data_iter)
-        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False, data_dir=self.data_dir)
-        dataset = log_dataset(logs=logs,
-                              labels=labels,
-                              seq=self.sequentials,
-                              quan=self.quantitatives,
-                              sem=self.semantics,
-                              param=self.parameters)
+        test_normal_results = [[] for _ in range(len(test_normal_loader))]
+        sess_normal_events = [(k, 0) for (k, v) in test_normal_loader.items()]
+        num_normal_sess = [test_normal_loader[x] for (x, l) in sess_normal_events]
+        seqs, labels = sliding_window(sess_normal_events, vocab, window_size=self.history_size, is_train=False,
+                                      is_predict_logkey=False,
+                                      data_dir=self.data_dir, semantics=self.semantics)
+
+        dataset = log_dataset(logs=seqs,
+                              labels=labels)
         data_loader = DataLoader(dataset,
                                  batch_size=min(len(dataset), 4096),
                                  shuffle=True,
-                                 pin_memory=False)
+                                 pin_memory=True)
         tbar = tqdm(data_loader, desc="\r")
         with torch.no_grad():
             for _, (log, label) in enumerate(tbar):
-                features = []
-                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                seq_idx = log['idx'].clone().detach().cpu().numpy()
                 del log['idx']
-                for value in log.values():
-                    features.append(value.clone().detach().to(self.device))
-
+                features = [x.to(self.device) for x in log['features']]
                 output, _ = model(features=features, device=self.device)
-
+                pred = output['y_pred']
+                # print(pred.shape)
+                # label = torch.tensor(label).view(-1).to(self.device)
                 for i in range(len(seq_idx)):
-                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
-                                               output['y_pred'][i].clone().detach().cpu() > threshold
-        FP = sum(test_results)
-        TN = len(test_results) - FP
+                    test_normal_results[seq_idx[i]].append(pred[i])
 
-        data_iter = [line for line in test_abnormal_loader if len(line[0]) >= self.min_len]
-        test_results = [0] * len(data_iter)
-        logs, labels = sliding_window(data_iter, vocab, window_size=self.history_size, is_train=False,
-                                      data_dir=self.data_dir)
-        dataset = log_dataset(logs=logs,
-                              labels=labels,
-                              seq=self.sequentials,
-                              quan=self.quantitatives,
-                              sem=self.semantics,
-                              param=self.parameters)
+        test_abnormal_results = [[] for _ in range(len(test_abnormal_loader))]
+        sess_abnormal_events = [(k, 1) for (k, v) in test_abnormal_loader.items()]
+        num_abnormal_sess = [test_abnormal_loader[x] for (x, l) in sess_abnormal_events]
+        seqs, labels = sliding_window(sess_abnormal_events, vocab, window_size=self.history_size, is_train=False,
+                                      data_dir=self.data_dir, semantics=self.semantics)
+
+        dataset = log_dataset(logs=seqs,
+                              labels=labels)
         data_loader = DataLoader(dataset,
                                  batch_size=min(len(dataset), 4096),
                                  shuffle=True,
-                                 pin_memory=False)
+                                 pin_memory=True)
         tbar = tqdm(data_loader, desc="\r")
         with torch.no_grad():
             for _, (log, label) in enumerate(tbar):
-                features = []
-                seq_idx = log['idx'].clone().detach().cpu().tolist()
+                seq_idx = log['idx'].clone().detach().cpu().numpy()
                 del log['idx']
-                for value in log.values():
-                    features.append(value.clone().detach().to(self.device))
-
+                features = [x.to(self.device) for x in log['features']]
                 output, _ = model(features=features, device=self.device)
-
+                pred = output['y_pred']
+                # print(pred.shape)
+                # label = torch.tensor(label).view(-1).to(self.device)
                 for i in range(len(seq_idx)):
-                    test_results[seq_idx[i]] = test_results[seq_idx[i]] or \
-                                               output['y_pred'][i].clone().detach().cpu() > threshold
-        TP = sum(test_results)
-        FN = len(test_results) - TP
-        P = 100 * TP / (TP + FP)
-        R = 100 * TP / (TP + FN)
-        F1 = 2 * P * R / (P + R)
-        FPR = FP / (FP + TN)
-        FNR = FN / (TP + FN)
-        SP = TN / (TN + FP)
-        print("Confusion matrix")
-        print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
-        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+                    test_abnormal_results[seq_idx[i]].append(pred[i])
 
-        elapsed_time = time.time() - start_time
-        print('elapsed_time: {}'.format(elapsed_time))
+        for i in range(1, 50):
+            threshold = th * (i + 1)
+            print("Threshold:", threshold)
+            FP = 0
+            TP = 0
+            for j, pred in enumerate(test_abnormal_results):
+                # print(pred)
+                if max(pred) > threshold:
+                    TP += num_abnormal_sess[j]
+            FN = sum(num_abnormal_sess) - TP
+            for j, pred in enumerate(test_normal_results):
+                if max(pred) > threshold:
+                    FP += num_normal_sess[j]
+            TN = sum(num_normal_sess) - FP
+            P = 100 * TP / (TP + FP)
+            R = 100 * TP / (TP + FN)
+            F1 = 2 * P * R / (P + R)
+            FPR = FP / (FP + TN)
+            FNR = FN / (TP + FN)
+            SP = TN / (TN + FP)
+            print("Confusion matrix for threshold", threshold)
+            print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+            print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+            # elapsed_time = time.time() - start_time
+            # print('elapsed_time: {}'.format(elapsed_time))
+        # for i in range(10):
+        #     threshold = th * (i + 1)
+        #     print("Threshold:", threshold)
+        #     total_normal, total_abnormal = 0, 0
+        #     FP = 0
+        #     TP = 0
+        #     with torch.no_grad():
+        #         for line in tqdm(test_normal_loader.keys()):
+        #             logs, labels = sliding_window([(line, 0)], vocab, window_size=self.history_size, is_train=False,
+        #                                           data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+        #             dataset = log_dataset(logs=logs, labels=labels)
+        #             data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
+        #             for _, (log, label) in enumerate(data_loader):
+        #                 del log['idx']
+        #                 features = [x.to(self.device) for x in log['features']]
+        #                 output, _ = model(features, self.device)
+        #
+        #                 if max(output['y_pred'].clone().detach().cpu().numpy().tolist()) > threshold:
+        #                     FP += test_normal_loader[line]
+        #                     break
+        #             total_normal += test_normal_loader[line]
+        #     TN = total_normal - FP
+        #     with torch.no_grad():
+        #         for line in tqdm(test_abnormal_loader.keys()):
+        #             logs, labels = sliding_window([(line, 1)], vocab, window_size=self.history_size, is_train=False,
+        #                                           data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+        #             dataset = log_dataset(logs=logs, labels=labels)
+        #             data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
+        #             for _, (log, label) in enumerate(data_loader):
+        #                 del log['idx']
+        #                 features = [x.to(self.device) for x in log['features']]
+        #                 output, _ = model(features, self.device)
+        #
+        #                 if max(output['y_pred'].clone().detach().cpu().numpy().tolist()) > threshold:
+        #                     TP += test_abnormal_loader[line]
+        #                     break
+        #             total_abnormal += test_abnormal_loader[line]
+        #     FN = total_abnormal - TP
+        #     P = 100 * TP / (TP + FP)
+        #     R = 100 * TP / (TP + FN)
+        #     F1 = 2 * P * R / (P + R)
+        #     FPR = FP / (FP + TN)
+        #     FNR = FN / (TP + FN)
+        #     SP = TN / (TN + FP)
+        #     print("Confusion matrix")
+        #     print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+        #     print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+        #
+        #     elapsed_time = time.time() - start_time
+        #     print('elapsed_time: {}'.format(elapsed_time))

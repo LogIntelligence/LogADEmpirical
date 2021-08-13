@@ -27,16 +27,13 @@ def down_sample(logs, labels, sample_ratio):
     print('sampling...')
     total_num = len(labels)
     all_index = list(range(total_num))
-    sample_logs = {}
-    for key in logs.keys():
-        sample_logs[key] = []
+    sample_logs = []
     sample_labels = []
     sample_num = int(total_num * sample_ratio)
 
-    for i in tqdm(range(sample_num)):
+    for _ in tqdm(range(sample_num)):
         random_index = int(np.random.uniform(0, len(all_index)))
-        for key in logs.keys():
-            sample_logs[key].append(logs[key][random_index])
+        sample_logs.append(logs[random_index])
         sample_labels.append(labels[random_index])
         del all_index[random_index]
     return sample_logs, sample_labels
@@ -78,69 +75,62 @@ def load_features(data_path, only_normal=True, min_len=0):
                 logs.append((seq['EventId'], label))
     else:
         logs = []
+        no_abnormal = 0
         for seq in data:
             if len(seq['EventId']) < min_len:
                 continue
             if not isinstance(seq['Label'], int):
                 label = seq['Label'].tolist()
+                if max(label) > 0:
+                    no_abnormal += 1
             else:
                 label = seq['Label']
+                if label > 0:
+                    no_abnormal += 1
             logs.append((seq['EventId'], label))
+        print("Number of abnormal sessions:", no_abnormal)
     return logs
 
 
 def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="dataset/", is_predict_logkey=True,
-                   e_name="embeddings.json", semantics=True):
-    '''
-    dataset structure
-        result_logs(dict):
-            result_logs['feature0'] = list()
-            result_logs['feature1'] = list()
-            ...
-        labels(list)
-    '''
+                   e_name="embeddings.json", semantics=True, sample_ratio=1):
+
     event2semantic_vec = read_json(os.path.join(data_dir, e_name))
-    result_logs = {}
-    result_logs['Sequentials'] = []
-    result_logs['Quantitatives'] = []
-    result_logs['Semantics'] = []
-    result_logs['Parameters'] = []
-    result_logs['idx'] = []
+    result_logs = []
     labels = []
 
     num_sessions = 0
     num_classes = len(vocab)
 
     duplicate_seq = {}
-
-    n_all = 0
-    for (line, lbls) in data_iter:
+    for idx, (orig_line, lbls) in enumerate(data_iter):
+        orig_line = list(orig_line)
         if (num_sessions + 1) % 100 == 0:
             print("processed %s lines" % (num_sessions + 1), end='\r')
-        orig_line = line.copy()
-        line = [vocab.stoi.get(ln, vocab.unk_index) for ln in line]
-        if len(line) < window_size + 1:
-            continue
-        session_len = len(line)  # , window_size) + 1  # predict the next one
-        # padding_size = session_len - len(line)
-        # orig_line = orig_line + ["0"] * padding_size
-        # line = line + [vocab.pad_index] * padding_size
+        line = [vocab.stoi.get(ln, vocab.unk_index) for ln in orig_line]
+        if is_predict_logkey:
+            seq_len = max(window_size + 1, len(line))
+        else:
+            seq_len = max(window_size, len(line))
+        line = [vocab.pad_index] * (seq_len - len(line)) + line
+        orig_line = ["padding"] * (seq_len - len(orig_line)) + orig_line
         if not is_train:
             duplicate_seq = {}
-
-        for i in range(session_len - window_size):
+        for i in range(len(line) - window_size if is_predict_logkey else len(line) - window_size + 1):
             if is_predict_logkey:
+                if i + window_size >= len(line) and is_predict_logkey:
+                    break
                 label = line[i + window_size]
             else:
-                if isinstance(lbls, list):
+                if not isinstance(lbls, int):
                     label = max(lbls[i: i + window_size])
                 else:
                     label = lbls
-            n_all += 1
-            seq = line[i: i + window_size].copy()
+
+            seq = line[i: i + window_size]
             if is_predict_logkey:
-                seq.append(line[i + window_size])
-            seq = map(lambda k: str(k), seq)
+                seq.append(label)
+            seq = list(map(lambda k: str(k), seq))
             seq = " ".join(seq)
             if seq in duplicate_seq.keys():
                 if not is_predict_logkey:
@@ -150,38 +140,34 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                 continue
 
             duplicate_seq[seq] = len(labels)
-            Sequential_pattern = line[i:i + window_size].copy()
-            Semantic_pattern = []
+            sequential_pattern = line[i:i + window_size]
+            semantic_pattern = []
             if semantics:
-                for event in orig_line[i:i + window_size].copy():
-                    if event == "0":
-                        Semantic_pattern.append([-1] * 300)
+                for event in orig_line[i:i + window_size]:
+                    if event == "padding":
+                        semantic_pattern.append([-1] * 300)
                     else:
-                        Semantic_pattern.append(event2semantic_vec[event])
+                        semantic_pattern.append(event2semantic_vec[event])
 
-            Quantitative_pattern = [0] * num_classes
-            log_counter = Counter(Sequential_pattern)
+            quantitative_pattern = [0] * num_classes
+            log_counter = Counter(sequential_pattern)
 
             for key in log_counter:
-                Quantitative_pattern[key] = log_counter[key]
+                try:
+                    quantitative_pattern[key] = log_counter[key]
+                except:
+                    pass # ignore unseen events or padding key
 
-            Sequential_pattern = np.array(Sequential_pattern)
-            Quantitative_pattern = np.array(Quantitative_pattern)[:, np.newaxis]
+            sequential_pattern = np.array(sequential_pattern)
+            quantitative_pattern = np.array(quantitative_pattern)[:, np.newaxis]
 
-            result_logs['Sequentials'].append(Sequential_pattern)
-            result_logs['Quantitatives'].append(Quantitative_pattern)
-            result_logs['Semantics'].append(Semantic_pattern)
-            result_logs['idx'].append(num_sessions)
-
-            # if label == 1:
-            #     print(Sequential_pattern)
+            result_logs.append(([sequential_pattern, quantitative_pattern, semantic_pattern], idx))
             labels.append(label)
         num_sessions += 1
 
-    # if is_train:
-    print('number of sessions {}'.format(num_sessions))
-    print('number of seqs {}'.format(len(result_logs['Sequentials'])))
-    result_logs['Sequentials'], result_logs['Quantitatives'], result_logs['Semantics'], result_logs[
-        'idx'], labels = shuffle(result_logs['Sequentials'], result_logs['Quantitatives'], result_logs['Semantics'],
-                                 result_logs['idx'], labels)
+    if sample_ratio != 1:
+        result_logs, labels = down_sample(result_logs, labels, sample_ratio)
+    if is_train:
+        print('number of sessions {}'.format(num_sessions))
+        print('number of seqs {}'.format(len(result_logs)))
     return result_logs, labels

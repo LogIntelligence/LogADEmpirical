@@ -3,7 +3,7 @@ import gc
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from logbert.logdeep.dataset.session import sliding_window, session_window
+from logbert.logdeep.dataset.session import sliding_window, session_window, fixed_window
 import shutil
 import pickle
 from sklearn.utils import shuffle
@@ -62,7 +62,7 @@ def _file_generator(filename, df, features):
 
 
 def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, window_size, step_size, train_size,
-                    random_sample=False):
+                    random_sample=False, session_type="entry"):
     """
     creating log sequences by sliding window
     :param data_dir:
@@ -97,23 +97,29 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
         df['deltaT'] = df['datetime'].diff() / np.timedelta64(1, 's')
         df['deltaT'].fillna(0)
         n_train = int(len(df) * train_size)
+        if session_type == "entry":
+            sliding = fixed_window
+        else:
+            sliding = sliding_window
+            window_size = float(window_size) * 60
+            step_size = float(step_size) * 60
         if random_sample:
-            window_df = sliding_window(df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]],
-                                       para={"window_size": float(window_size) * 60,
-                                             "step_size": float(step_size) * 60})
+            window_df = sliding(df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]],
+                                       para={"window_size": window_size,
+                                             "step_size": step_size})
             window_df = window_df.sample(frac=1).reset_index(drop=True)
             n_train = int(len(window_df) * train_size)
-            train_window_df = window_df.iloc[:n_train, :]
-            test_window_df = window_df.iloc[n_train:, :]
+            train_window = window_df.iloc[:n_train, :].to_dict("records")
+            test_window = window_df.iloc[n_train:, :].to_dict("records")
         else:
-            train_window_df = sliding_window(
+            train_window = sliding(
                 df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]].iloc[:n_train, :],
-                para={"window_size": float(window_size) * 60,
-                      "step_size": float(step_size) * 60})
-            test_window_df = sliding_window(
+                para={"window_size": window_size,
+                      "step_size": step_size}).to_dict("records")
+            test_window = sliding(
                 df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]].iloc[n_train:, :].reset_index(
                     drop=True),
-                para={"window_size": float(window_size) * 60, "step_size": float(step_size) * 60})
+                para={"window_size": window_size, "step_size": step_size}).to_dict("records")
 
     elif window_type == "session":
         # only for hdfs
@@ -126,8 +132,8 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
 
         window_df = session_window(df, id_regex, label_dict)
         n_train = int(len(window_df) * train_size)
-        train_window_df = window_df.iloc[:n_train, :]
-        test_window_df = window_df.iloc[n_train:, :].reset_index(drop=True)
+        train_window = window_df[:n_train]
+        test_window = window_df[n_train:]
     else:
         raise NotImplementedError(f"{window_type} is not implemented")
 
@@ -135,8 +141,10 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
         print(f"creating {output_dir}")
         os.mkdir(output_dir)
     # save pickle file
-    train_window = train_window_df.to_dict("records")
-    test_window = test_window_df.to_dict("records")
+    # print(train_window_df.head())
+    # print(test_window_df.head())
+    # train_window = train_window_df.to_dict("records")
+    # test_window = test_window_df.to_dict("records")
     with open(os.path.join(output_dir, "train.pkl"), mode="wb") as f:
         pickle.dump(train_window, f)
     with open(os.path.join(output_dir, "test.pkl"), mode="wb") as f:

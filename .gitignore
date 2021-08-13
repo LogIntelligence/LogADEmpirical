@@ -4,6 +4,7 @@
 output/*
 dataset/*/
 dataset/**/
+experimental_results/*
 
 # Editors
 .vscode/

@@ -8,7 +8,7 @@ class AutoEncoder(nn.Module):
     def __init__(
             self,
             hidden_size=100,
-            num_layers=1,
+            num_layers=2,
             num_directions=2,
             embedding_dim=16
     ):
@@ -55,7 +55,7 @@ class AutoEncoder(nn.Module):
         attn_output = torch.sum(state * alphas_reshape, 1)
         return attn_output
 
-    def forward(self, features, device='cuda:0'):
+    def forward(self, features, device='cuda'):
         x = features[2].to(device)
         # print(x.shape)
         self.batch_size = x.size()[0]

@@ -11,11 +11,17 @@ def run_deeplog(options):
     if not os.path.exists(options["vocab_path"]):
         with open(options["train_vocab"], 'rb') as f:
             data = pickle.load(f)
-        logs = [x['EventId'] for x in data]
+        logs = []
+        for x in data:
+            try:
+                l = max(x['Label'])
+            except:
+                l = x['Label']
+            if l == 0:
+                logs.append(x['EventId'])
         vocab = Vocab(logs)
         print("vocab size", len(vocab))
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
-
-    Trainer(options).start_train()
+    # Trainer(options).start_train()
     Predicter(options).predict_semi_supervised()

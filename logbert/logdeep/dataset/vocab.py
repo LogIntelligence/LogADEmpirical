@@ -3,12 +3,11 @@ import pickle
 
 
 class Vocab(object):
-    def __init__(self, logs, specials=['PAD', 'UNK'], max_size=None, min_freq=None):
+    def __init__(self, logs):
         self.pad_index = 0
-        self.unk_index = 1
 
         self.stoi = {}
-        self.itos = list(specials)
+        self.itos = list(["padding"])
 
         event_count = Counter()
         for line in logs:
@@ -17,7 +16,7 @@ class Vocab(object):
 
         for event, freq in event_count.items():
             self.itos.append(event)
-
+        self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
 
     def __len__(self):

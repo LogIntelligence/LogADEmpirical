@@ -1,26 +1,29 @@
 import os
 import re
 import pandas as pd
+from sklearn.utils import shuffle
 from collections import defaultdict
 from tqdm import tqdm
 
 def session_window(raw_data, id_regex, label_dict):
     data_dict = defaultdict(list)
     raw_data = raw_data.to_dict("records")
+
     for idx, row in tqdm(enumerate(raw_data)):
         blkId_list = re.findall(id_regex, row['Content'])
         blkId_set = set(blkId_list)
         for blk_Id in blkId_set:
-            if blk_Id not in data_dict:
-                data_dict[blk_Id] = ([row["EventId"]], [row['EventTemplate']])
+            if blk_Id not in data_dict.keys():
+                data_dict[blk_Id] = [row["EventId"]]
             else:
-                data_dict[blk_Id][0].append(row["EventId"])
-                data_dict[blk_Id][1].append(row["EventTemplate"])
+                data_dict[blk_Id].append(row["EventId"])
 
-    data_df = pd.DataFrame([(k, *v) for k, v in data_dict.items()], columns=['SessionId', 'EventId', "EventTemplate"])
-    data_df["Label"] = data_df["SessionId"].apply(lambda x: label_dict.get(x))
-    data_df = data_df.sample(frac=1).reset_index(drop=True)
-    return data_df
+    results = []
+
+    for k, v in data_dict.items():
+        results.append({"SessionId": k, "EventId": v, "Label": label_dict[k]})
+    results = shuffle(results)
+    return results
 
 
 #see https://pinjiahe.github.io/papers/ISSRE16.pdf
@@ -94,22 +97,44 @@ def sliding_window(raw_data, para):
     return pd.DataFrame(new_data, columns=raw_data.columns)
 
 
-def fixed_window(df, features, index, label, window_size='T'):
+def fixed_window(raw_data, para):
     """
-    :param df: structured data after parsing
-    features: datetime, eventid
-    label: 1 anomaly/alert, 0 not anomaly
-    :param window_size: offset datetime https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-    :return:
+    split logs into sliding windows/session
+    :param raw_data: dataframe columns=[timestamp, label, eventid, time duration]
+    :param para:{window_size: seconds, step_size: seconds}
+    :return: dataframe columns=[eventids, time durations, label]
     """
-    df = df[features + [label]]
-    agg_dict = {label: 'max'}
-    for f in features:
-        agg_dict[f] = _custom_resampler
+    log_size = raw_data.shape[0]
+    label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
+    # print(label_data[:10])
+    logkey_data, deltaT_data, log_template_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
+    new_data = []
+    start_end_index_pair = set()
 
-    seq_df = df.set_index(index).resample(window_size).agg(agg_dict).reset_index()
-    return seq_df
+    start_index = 0
+    num_session = 0
+    print(log_size)
+    while start_index < log_size:
+        end_index = min(start_index + int(para["window_size"]), log_size)
+        # print(start_index, end_index)
+        start_end_index_pair.add(tuple([start_index, end_index]))
+        start_index = start_index + int(para['step_size'])
+        num_session += 1
+        if num_session % 1000 == 0:
+            print("process {} time window".format(num_session), end='\r')
 
+    n_sess = 0
+    for (start_index, end_index) in start_end_index_pair:
+        new_data.append({
+            "Label": label_data[start_index:end_index].values,
+            "EventId": logkey_data[start_index: end_index].values,
+            "SessionId": n_sess
+        })
+        n_sess += 1
+
+    assert len(start_end_index_pair) == len(new_data)
+    print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
+    return pd.DataFrame(new_data)
 
 def _custom_resampler(array_like):
     return list(array_like)

@@ -30,7 +30,9 @@ def arg_parser():
                                                                                 "bgl2", "hadoop"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
-    parser.add_argument("--output_dir", default="./output/", metavar="DIR", help="output directory")
+    parser.add_argument("--output_dir", default="./experimental_results/RQ1/vary_window_size/", metavar="DIR",
+                        help="output "
+                                                                                                      "directory")
     parser.add_argument("--folder", default='bgl', metavar="DIR")
 
     parser.add_argument('--log_file', help="log file name")
@@ -53,6 +55,8 @@ def arg_parser():
     parser.add_argument("--train_file", default="train_fixed100_instances.pkl", help="train instances file name")
     parser.add_argument("--test_file", default="test_fixed100_instances.pkl", help="test instances file name")
     parser.add_argument("--window_type", type=str, choices=["sliding", "session"],
+                        help="window for building log sequence")
+    parser.add_argument("--session_level", type=str, choices=["entry", "hour"],
                         help="window for building log sequence")
     parser.add_argument('--window_size', default=5, type=float, help='window size(mins)')
     parser.add_argument('--step_size', default=1, type=float, help='step size(mins)')
@@ -156,21 +160,24 @@ def main():
                   args.keep_para,
                   args.st, args.depth, args.max_child, args.tau)
 
-    # split into train and test data
+    options = vars(args)
+    if options['session_level'] == "entry":
+        options["output_dir"] = options["output_dir"] + str(int(options["window_size"])) + "/"
     if args.is_process:
-        process_dataset(data_dir=args.data_dir, output_dir=args.output_dir, log_file=args.log_file,
+        process_dataset(data_dir=args.data_dir, output_dir=options["output_dir"], log_file=args.log_file,
                         dataset_name=args.dataset_name, window_type=args.window_type,
                         window_size=args.window_size, step_size=args.step_size,
-                        train_size=args.train_size, random_sample=args.random_sample)
+                        train_size=args.train_size, random_sample=args.random_sample, session_type=args.session_level)
 
     if args.is_instance:
         process_instance(data_dir=args.data_dir, output_dir=args.output_dir, train_file=args.train_file,
                          test_file=args.test_file)
 
-    options = vars(args)
+    # if options['session_level'] == "entry":
+    #     options["output_dir"] = options["output_dir"] + str(options["window_size"]) + "/"
     options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
     options["train_vocab"] = options["output_dir"] + "train.pkl"
-    options["vocab_path"] = options["data_dir"] + "vocab.pkl"  # pickle file
+    options["vocab_path"] = options["output_dir"] + options["model_name"] + "_vocab.pkl"  # pickle file
     options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
     options["scale_path"] = options["model_dir"] + "scale.pkl"
 

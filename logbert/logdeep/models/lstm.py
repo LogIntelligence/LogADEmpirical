@@ -10,26 +10,27 @@ class deeplog(nn.Module):
 
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
-        print(vocab_size)
-        self.embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
+        self.embedding = nn.Embedding(vocab_size + 1, self.embedding_dim)
         torch.nn.init.uniform_(self.embedding.weight)
         self.embedding.weight.requires_grad = True
 
         self.lstm = nn.LSTM(self.embedding_dim,
                             hidden_size,
                             num_layers,
-                            batch_first=True)
+                            batch_first=True,
+                            bidirectional=False)
         self.fc0 = nn.Linear(hidden_size, vocab_size)
 
     def forward(self, features, device):
         input0 = features[0]
         embed0 = self.embedding(input0)
-        h0 = torch.zeros(self.num_layers, embed0.size(0),
-                         self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, embed0.size(0),
-                         self.hidden_size).to(device)
-        out, _ = self.lstm(embed0, (h0, c0))
+        # h0 = torch.zeros(self.num_layers, embed0.size(0),
+        #                  self.hidden_size).to(device)
+        # c0 = torch.zeros(self.num_layers, embed0.size(0),
+        #                  self.hidden_size).to(device)
+        out, _ = self.lstm(embed0)
         out0 = self.fc0(out[:, -1, :])
+        # out0 = out0.softmax(dim=-1)
         return out0, out0
 
 
@@ -88,8 +89,7 @@ class loganomaly(nn.Module):
         self.num_layers = num_layers
 
         self.embedding_dim = embedding_dim
-        self.embedding_size = vocab_size
-        self.embedding = nn.Embedding(self.embedding_size, self.embedding_dim)
+        self.embedding = nn.Embedding(vocab_size + 1, self.embedding_dim)
         torch.nn.init.uniform_(self.embedding.weight)
         self.embedding.weight.requires_grad = True
 
