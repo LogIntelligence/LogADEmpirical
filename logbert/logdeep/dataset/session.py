@@ -116,7 +116,6 @@ def fixed_window(raw_data, para):
     print(log_size)
     while start_index < log_size:
         end_index = min(start_index + int(para["window_size"]), log_size)
-        # print(start_index, end_index)
         start_end_index_pair.add(tuple([start_index, end_index]))
         start_index = start_index + int(para['step_size'])
         num_session += 1
@@ -128,6 +127,7 @@ def fixed_window(raw_data, para):
         new_data.append({
             "Label": label_data[start_index:end_index].values,
             "EventId": logkey_data[start_index: end_index].values,
+            "EventTemplate": log_template_data[start_index: end_index].values,
             "SessionId": n_sess
         })
         n_sess += 1
