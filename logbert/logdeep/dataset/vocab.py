@@ -28,17 +28,22 @@ class Vocab(object):
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
         self.semantic_vectors = read_json(os.path.join(emb_file))
+        self.semantic_vectors["padding"] = [-1] * 300
         self.model = model
+        self.mapping = {}
 
     def __len__(self):
         return len(self.itos)
 
     def find_similar(self, real_event):
+        if real_event in self.mapping:
+            return self.mapping[real_event]
         if self.model == "loganomaly":
             for train_event in self.itos:
                 sim = dot(self.semantic_vectors[real_event], self.semantic_vectors[train_event])/(norm(
                     self.semantic_vectors[real_event])*norm(self.semantic_vectors[train_event]))
-                if sim > 0.9:
+                if sim > 0.95:
+                    self.mapping[real_event] = self.stoi.get(train_event)
                     return self.stoi.get(train_event)
         return self.unk_index
 

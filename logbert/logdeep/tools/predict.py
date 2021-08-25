@@ -324,7 +324,8 @@ class Predicter():
         start_time = time.time()
         data = [(k, v) for k, v in test_normal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
-                                      data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                                      data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
+                                      e_name=self.embeddings)
         dataset = log_dataset(logs=logs, labels=labels)
         data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
         normal_results = [0] * len(data)
