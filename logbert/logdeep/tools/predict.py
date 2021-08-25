@@ -265,13 +265,15 @@ class Predicter():
                         break
                 total_normal += test_normal_loader[line]
         TN = total_normal - FP
+        lead_time = []
         with torch.no_grad():
             for line in tqdm(test_abnormal_loader.keys()):
                 logs, labels = sliding_window([(line, 1)], vocab, window_size=self.history_size, is_train=False,
                                               data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                n_log = len(logs)
                 dataset = log_dataset(logs=logs, labels=labels)
-                data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
-                for _, (log, label) in enumerate(data_loader):
+                data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
+                for i, (log, label) in enumerate(data_loader):
                     del log['idx']
                     features = [x.to(self.device) for x in log['features']]
                     output, _ = model(features, self.device)
@@ -281,6 +283,7 @@ class Predicter():
                     # print(pred)
                     if 1 in pred:
                         TP += test_abnormal_loader[line]
+                        lead_time.append(n_log - i)
                         break
                 total_abnormal += test_abnormal_loader[line]
         FN = total_abnormal - TP
@@ -292,7 +295,8 @@ class Predicter():
         SP = TN / (TN + FP)
         print("Confusion matrix")
         print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
-        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, '
+              'Specificity: {:.3f}, Lead time: {}'.format(P, R, F1, SP, sum(lead_time) / len(lead_time)))
 
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))

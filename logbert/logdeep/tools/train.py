@@ -108,6 +108,8 @@ class Trainer():
                                                       )
 
             train_logs, train_labels = shuffle(train_logs, train_labels)
+            train_logs = train_logs[:200000]
+            train_labels = train_labels[:200000]
             n_val = int(len(train_logs) * self.valid_ratio)
             val_logs, val_labels = train_logs[-n_val:], train_labels[-n_val:]
             del data

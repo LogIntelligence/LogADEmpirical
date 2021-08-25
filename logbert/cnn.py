@@ -18,5 +18,5 @@ def run_cnn(options):
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
 
-    # Trainer(options).start_train()
-    Predicter(options).predict_supervised()
+    Trainer(options).start_train()
+    Predicter(options).predict_supervised2()

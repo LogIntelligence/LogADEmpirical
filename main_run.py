@@ -30,7 +30,7 @@ def arg_parser():
                                                                                 "bgl2", "hadoop"])
     parser.add_argument("--device", help="hardware device", default="cuda")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
-    parser.add_argument("--output_dir", default="./experimental_results/RQ1/vary_window_size/", metavar="DIR",
+    parser.add_argument("--output_dir", default="./experimental_results/RQ1/random/", metavar="DIR",
                         help="output directory")
     parser.add_argument("--folder", default='bgl', metavar="DIR")
 

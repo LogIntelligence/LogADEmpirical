@@ -230,15 +230,15 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
 
 if __name__ == '__main__':
 
-    x_tr, x_te = load_Hadoop("hadoop/Hadoop.log_structured.csv", "hadoop/label.json", train_ratio=0.8)
+    # x_tr, x_te = load_Hadoop("spirit/Hadoop.log_structured.csv", "hadoop/label.json", train_ratio=0.8)
 
-    # x_tr, x_te = load_fixed_windows_instances(
-    #     "../../LogVectorization/logparser/benchmark/Drain_result/Spirit1G.log_structured.csv",
-    #     train_ratio=0.8,
-    #     window_size=300)
+    x_tr, x_te = load_fixed_windows_instances(
+        "../../LogVectorization/logparser/benchmark/Drain_result/Spirit5M.log_structured.csv",
+        train_ratio=0.8,
+        window_size=500)
 
-    with open("hadoop/train.pkl", mode="wb") as f:
-        pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-    with open("hadoop/test.pkl", mode="wb") as f:
-        pickle.dump(x_te, f, protocol=pickle.HIGHEST_PROTOCOL)
+    # with open("hadoop/train.pkl", mode="wb") as f:
+    #     pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)
+    #
+    # with open("hadoop/test.pkl", mode="wb") as f:
+    #     pickle.dump(x_te, f, protocol=pickle.HIGHEST_PROTOCOL)
