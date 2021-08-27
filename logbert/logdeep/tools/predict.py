@@ -131,7 +131,7 @@ class Predicter():
         test_normal_length = sum(num_normal_session_logs)
         res = [0, 0, 0, 0, 0, 0, 0, 0]  # th,tp, tn, fp, fn,  p, r, f1
         # print(threshold_range)
-        for th in range(threshold_range, 0, -1):
+        for th in range(threshold_range, threshold_range - 20, -1):
             FP = self.compute_anomaly(test_normal_results, num_normal_session_logs, th + 1)
             TP = self.compute_anomaly(test_abnormal_results, num_abnormal_session_logs, th + 1)
             if TP == 0:
@@ -175,7 +175,8 @@ class Predicter():
                 if self.is_logkey:
                     for i in range(len(seq_idx)):
                         test_results[seq_idx[i]].append(
-                            (torch.argsort(output[i], descending=True).clone().detach().cpu(), label[i]))
+                            (torch.argsort(output[i], descending=True)[:self.num_candidates].clone().detach().cpu(),
+                             label[i]))
         return test_results, num_sess
 
     def predict_semi_supervised(self):
@@ -348,7 +349,8 @@ class Predicter():
             total_normal += data[i][1]
         data = [(k, v) for k, v in test_abnormal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
-                                      data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                                      data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
+                                      e_name=self.embeddings)
         dataset = log_dataset(logs=logs, labels=labels)
         data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
         abnormal_results = [0] * len(data)

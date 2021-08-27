@@ -107,7 +107,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
         orig_line = list(orig_line)
         if (num_sessions + 1) % 100 == 0:
             print("processed %s lines" % (num_sessions + 1), end='\r')
-        line = [vocab.stoi.get(ln, vocab.unk_index) for ln in orig_line]
+        line = [vocab.stoi.get(ln, vocab.find_similar(ln)) for ln in orig_line]
         if is_predict_logkey:
             seq_len = max(window_size + 1, len(line))
         else:
