@@ -4,7 +4,7 @@ This repository provides the implementation of recent log-based anomaly detectio
 The process includes downloading raw data online, parsing logs into structured data, 
 creating log sequences and finally modeling.
 
-**Note: This repo is built based on [LogBERT](https://github.com/HelenGuohx/logbert) and [logdeep](https://github.com/donglee-afar/logdeep)**
+<!-- **Note: This repo is built based on [LogBERT](https://github.com/HelenGuohx/logbert) and [logdeep](https://github.com/donglee-afar/logdeep)** -->
 
 ### Prerequisites
 - Linux or macOS
