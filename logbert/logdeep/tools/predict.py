@@ -131,7 +131,7 @@ class Predicter():
         test_normal_length = sum(num_normal_session_logs)
         res = [0, 0, 0, 0, 0, 0, 0, 0]  # th,tp, tn, fp, fn,  p, r, f1
         # print(threshold_range)
-        for th in range(threshold_range, threshold_range - 20, -1):
+        for th in range(threshold_range, threshold_range - 2, -1):
             FP = self.compute_anomaly(test_normal_results, num_normal_session_logs, th + 1)
             TP = self.compute_anomaly(test_abnormal_results, num_abnormal_session_logs, th + 1)
             if TP == 0:
@@ -161,7 +161,7 @@ class Predicter():
                               labels=labels)
         data_loader = DataLoader(dataset,
                                  batch_size=min(len(dataset), 512),
-                                 shuffle=True,
+                                 shuffle=False,
                                  pin_memory=True)
         tbar = tqdm(data_loader, desc="\r")
         with torch.no_grad():
@@ -213,10 +213,25 @@ class Predicter():
         FPR = FP / (FP + TN)
         FNR = FN / (TP + FN)
         SP = TN / (TN + FP)
+
+        # find lead time
+        lead_time = []
+        no_detection = 0
+        for pred in test_abnormal_results:
+            for i, p in enumerate(pred):
+                if p[1] not in p[0][:TH]:
+                    lead_time.append(i + 1)
+                    no_detection += 1
+                    break
+
+        with open(self.output_dir + self.model_name + "-leadtime.txt", mode="w") as f:
+            [f.write(str(i) + "\n") for i in lead_time]
+
         print('Best threshold', TH)
         print("Confusion matrix")
         print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
-        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}, '
+              'Lead time: {:.3f}'.format(P, R, F1, SP, sum(lead_time) / no_detection))
 
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))
@@ -284,7 +299,7 @@ class Predicter():
                     # print(pred)
                     if 1 in pred:
                         TP += test_abnormal_loader[line]
-                        lead_time.append(n_log - i)
+                        lead_time.append(i)
                         break
                 total_abnormal += test_abnormal_loader[line]
         FN = total_abnormal - TP
@@ -296,6 +311,8 @@ class Predicter():
         SP = TN / (TN + FP)
         print("Confusion matrix")
         print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
+        with open(self.output_dir + self.model_name + "-leadtime.txt", mode="w") as f:
+            [f.write(str(i) + "\n") for i in lead_time]
         print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, '
               'Specificity: {:.3f}, Lead time: {}'.format(P, R, F1, SP, sum(lead_time) / len(lead_time)))
 

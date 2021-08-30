@@ -42,9 +42,10 @@ class Vocab(object):
             for train_event in self.itos:
                 sim = dot(self.semantic_vectors[real_event], self.semantic_vectors[train_event])/(norm(
                     self.semantic_vectors[real_event])*norm(self.semantic_vectors[train_event]))
-                if sim > 0.95:
+                if sim > 0.90:
                     self.mapping[real_event] = self.stoi.get(train_event)
                     return self.stoi.get(train_event)
+        self.mapping[real_event] = self.unk_index
         return self.unk_index
 
     def save_vocab(self, file_path):

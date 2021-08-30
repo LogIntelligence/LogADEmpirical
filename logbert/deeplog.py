@@ -19,7 +19,7 @@ def run_deeplog(options):
                 l = x['Label']
             if l == 0:
                 logs.append(x['EventId'])
-        vocab = Vocab(logs)
+        vocab = Vocab(logs, os.path.join(options['data_dir'], "embeddings.json"), "deeplog")
         print("vocab size", len(vocab))
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
