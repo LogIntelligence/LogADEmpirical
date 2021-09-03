@@ -3,7 +3,7 @@ import gc
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from logbert.logdeep.dataset.session import sliding_window, session_window, fixed_window
+from logbert.logdeep.dataset.session import sliding_window, session_window, session_window_bgl, fixed_window
 import shutil
 import pickle
 from sklearn.utils import shuffle
@@ -123,17 +123,23 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
 
     elif window_type == "session":
         # only for hdfs
-        id_regex = r'(blk_-?\d+)'
-        label_dict = {}
-        blk_label_file = os.path.join(data_dir, "anomaly_label.csv")
-        blk_df = pd.read_csv(blk_label_file)
-        for _, row in tqdm(enumerate(blk_df.to_dict("records"))):
-            label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
+        if dataset_name == "hdfs":
+            id_regex = r'(blk_-?\d+)'
+            label_dict = {}
+            blk_label_file = os.path.join(data_dir, "anomaly_label.csv")
+            blk_df = pd.read_csv(blk_label_file)
+            for _, row in tqdm(enumerate(blk_df.to_dict("records"))):
+                label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
-        window_df = session_window(df, id_regex, label_dict)
-        n_train = int(len(window_df) * train_size)
-        train_window = window_df[:n_train]
-        test_window = window_df[n_train:]
+            window_df = session_window(df, id_regex, label_dict)
+            n_train = int(len(window_df) * train_size)
+            train_window = window_df[:n_train]
+            test_window = window_df[n_train:]
+        else:
+            window_df = session_window_bgl(df)
+            n_train = int(len(window_df) * train_size)
+            train_window = window_df[:n_train]
+            test_window = window_df[n_train:]
     else:
         raise NotImplementedError(f"{window_type} is not implemented")
 

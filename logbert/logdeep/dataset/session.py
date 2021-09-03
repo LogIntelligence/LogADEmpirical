@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.utils import shuffle
 from collections import defaultdict
 from tqdm import tqdm
+import numpy as np
 
 def session_window(raw_data, id_regex, label_dict):
     data_dict = defaultdict(list)
@@ -25,6 +26,28 @@ def session_window(raw_data, id_regex, label_dict):
     results = shuffle(results)
     return results
 
+
+def session_window_bgl(raw_data):
+    data_dict = defaultdict(list)
+    label_dict = defaultdict(list)
+    raw_data = raw_data.to_dict("records")
+
+    for idx, row in tqdm(enumerate(raw_data)):
+        node_id = row['Node']
+        label = 1 if row["Label"] != "-" else 0
+        if node_id not in data_dict.keys():
+            data_dict[node_id] = [row["EventId"]]
+            label_dict[node_id] = [label]
+        else:
+            data_dict[node_id].append(row["EventId"])
+            label_dict[node_id].append(label)
+
+    results = []
+
+    for k, v in data_dict.items():
+        results.append({"SessionId": k, "EventId": v, "Label": np.array(label_dict[k])})
+    results = shuffle(results)
+    return results
 
 #see https://pinjiahe.github.io/papers/ISSRE16.pdf
 def sliding_window(raw_data, para):

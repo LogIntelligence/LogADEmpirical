@@ -131,7 +131,7 @@ class Predicter():
         test_normal_length = sum(num_normal_session_logs)
         res = [0, 0, 0, 0, 0, 0, 0, 0]  # th,tp, tn, fp, fn,  p, r, f1
         # print(threshold_range)
-        for th in range(threshold_range, threshold_range - 2, -1):
+        for th in range(threshold_range, threshold_range - 1, -1):
             FP = self.compute_anomaly(test_normal_results, num_normal_session_logs, th + 1)
             TP = self.compute_anomaly(test_abnormal_results, num_abnormal_session_logs, th + 1)
             if TP == 0:
@@ -183,6 +183,7 @@ class Predicter():
 
         with open(self.vocab_path, 'rb') as f:
             vocab = pickle.load(f)
+        print(len(vocab))
         if self.model_name == "deeplog":
             lstm_model = deeplog
         else:
@@ -220,7 +221,7 @@ class Predicter():
         for pred in test_abnormal_results:
             for i, p in enumerate(pred):
                 if p[1] not in p[0][:TH]:
-                    lead_time.append(i + 1)
+                    lead_time.append(i + self.history_size + 1)
                     no_detection += 1
                     break
 
@@ -370,9 +371,10 @@ class Predicter():
                                       e_name=self.embeddings)
         dataset = log_dataset(logs=logs, labels=labels)
         data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
-        abnormal_results = [0] * len(data)
+        abnormal_results = [[]] * len(data)
         for _, (log, label) in enumerate(tqdm(data_loader)):
             seq_idx = log['idx'].tolist()
+            # print(seq_idx)
             features = [x.to(self.device) for x in log['features']]
             output, _ = model(features, self.device)
             output = output.softmax(dim=1)
@@ -380,12 +382,16 @@ class Predicter():
             pred = pred[:, 0]
             pred = pred.cpu().numpy().tolist()
             for i in range(len(pred)):
-                abnormal_results[seq_idx[i]] = max(abnormal_results[seq_idx[i]], int(pred[i]))
-
+                # print(len(seq_idx))
+                # print(pred[i])
+                abnormal_results[seq_idx[i]] = abnormal_results[seq_idx[i]] + [int(pred[i])]
+        lead_time = []
         total_abnormal, TP = 0, 0
         for i in range(len(abnormal_results)):
-            if abnormal_results[i] == 1:
+            print(len(abnormal_results[i]))
+            if max(abnormal_results[i]) == 1:
                 TP += data[i][1]
+                lead_time.append(abnormal_results[i].index(1) + self.history_size + 1)
             total_abnormal += data[i][1]
         TN = total_normal - FP
         FN = total_abnormal - TP
@@ -396,9 +402,12 @@ class Predicter():
         FPR = FP / (FP + TN)
         FNR = FN / (TP + FN)
         SP = TN / (TN + FP)
+        with open(self.output_dir + self.model_name + "-leadtime.txt", mode="w") as f:
+            [f.write(str(i) + "\n") for i in lead_time]
         print("Confusion matrix")
         print("TP: {}, TN: {}, FP: {}, FN: {}, FNR: {}, FPR: {}".format(TP, TN, FP, FN, FNR, FPR))
-        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}'.format(P, R, F1, SP))
+        print('Precision: {:.3f}%, Recall: {:.3f}%, F1-measure: {:.3f}%, Specificity: {:.3f}, '
+              'Lead time: {:.3f}'.format(P, R, F1, SP, sum(lead_time) / len(lead_time)))
 
         elapsed_time = time.time() - start_time
         print('elapsed_time: {}'.format(elapsed_time))

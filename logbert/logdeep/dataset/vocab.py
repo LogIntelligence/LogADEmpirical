@@ -36,8 +36,11 @@ class Vocab(object):
         return len(self.itos)
 
     def find_similar(self, real_event):
-        if real_event in self.mapping:
-            return self.mapping[real_event]
+        try:
+            if real_event in self.mapping:
+                return self.mapping[real_event]
+        except:
+            pass
         if self.model == "loganomaly":
             for train_event in self.itos:
                 sim = dot(self.semantic_vectors[real_event], self.semantic_vectors[train_event])/(norm(

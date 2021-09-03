@@ -105,6 +105,8 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
     duplicate_seq = {}
     for idx, (orig_line, lbls) in enumerate(data_iter):
         orig_line = list(orig_line)
+        # print(len(orig_line))
+        # print(orig_line[:window_size])
         if (num_sessions + 1) % 100 == 0:
             print("processed %s lines" % (num_sessions + 1), end='\r')
         line = [vocab.stoi.get(ln, vocab.find_similar(ln)) for ln in orig_line]
