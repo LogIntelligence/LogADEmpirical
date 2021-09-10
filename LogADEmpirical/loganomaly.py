@@ -1,8 +1,8 @@
 import os
-from LogADEmpirical.logdeep.models.lstm import loganomaly
-from LogADEmpirical.logdeep.tools.predict import Predicter
-from LogADEmpirical.logdeep.tools.train import Trainer
-from LogADEmpirical.logdeep.dataset.vocab import Vocab
+from logadempirical.logdeep.models.lstm import loganomaly
+from logadempirical.logdeep.tools.predict import Predicter
+from logadempirical.logdeep.tools.train import Trainer
+from logadempirical.logdeep.dataset.vocab import Vocab
 import pickle
 
 

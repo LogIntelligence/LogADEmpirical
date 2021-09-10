@@ -15,12 +15,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.metrics import auc
 
-from LogADEmpirical.logdeep.dataset.log import log_dataset
-from LogADEmpirical.logdeep.dataset.sample import sliding_window
-from LogADEmpirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
-from LogADEmpirical.logdeep.models.cnn import TextCNN
-from LogADEmpirical.logdeep.models.autoencoder import AutoEncoder
-from LogADEmpirical.neural_log.transformers import TransformerClassification
+from logadempirical.logdeep.dataset.log import log_dataset
+from logadempirical.logdeep.dataset.sample import sliding_window
+from logadempirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
+from logadempirical.logdeep.models.cnn import TextCNN
+from logadempirical.logdeep.models.autoencoder import AutoEncoder
+from logadempirical.neural_log.transformers import TransformerClassification
 
 
 def generate(output_dir, name):

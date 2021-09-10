@@ -1,4 +1,4 @@
-from LogADEmpirical.logparser import Spell, Drain
+from logadempirical.logparser import Spell, Drain
 
 
 def parse_log(data_dir, output_dir, log_file, parser_type,log_format, regex, keep_para=False, st=0.3, depth=3, max_child=1000, tau=0.35):

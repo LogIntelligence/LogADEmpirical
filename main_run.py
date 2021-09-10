@@ -1,15 +1,15 @@
 from argparse import ArgumentParser
 import os
 
-from LogADEmpirical.logdeep.tools.utils import seed_everything, save_parameters
-from LogADEmpirical.deeplog import run_deeplog
-from LogADEmpirical.loganomaly import run_loganomaly
-from LogADEmpirical.logrobust import run_logrobust
-from LogADEmpirical.neurallog import run_neurallog
-from LogADEmpirical.cnn import run_cnn
-from LogADEmpirical.bert import run_logbert
-from LogADEmpirical.autoencoder import run_autoencoder
-from LogADEmpirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
+from logadempirical.logdeep.tools.utils import seed_everything, save_parameters
+from logadempirical.deeplog import run_deeplog
+from logadempirical.loganomaly import run_loganomaly
+from logadempirical.logrobust import run_logrobust
+from logadempirical.neurallog import run_neurallog
+from logadempirical.cnn import run_cnn
+from logadempirical.bert import run_logbert
+from logadempirical.autoencoder import run_autoencoder
+from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
 

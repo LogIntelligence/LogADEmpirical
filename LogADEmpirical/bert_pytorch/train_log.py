@@ -1,9 +1,9 @@
 from torch.utils.data import DataLoader
-from LogADEmpirical.bert_pytorch.model import BERT
-from LogADEmpirical.bert_pytorch.trainer import BERTTrainer
-from LogADEmpirical.bert_pytorch.dataset import LogDataset, WordVocab
-from LogADEmpirical.bert_pytorch.dataset.sample import generate_train_valid
-from LogADEmpirical.bert_pytorch.dataset.utils import plot_train_valid_loss
+from logadempirical.bert_pytorch.model import BERT
+from logadempirical.bert_pytorch.trainer import BERTTrainer
+from logadempirical.bert_pytorch.dataset import LogDataset, WordVocab
+from logadempirical.bert_pytorch.dataset.sample import generate_train_valid
+from logadempirical.bert_pytorch.dataset.utils import plot_train_valid_loss
 
 import matplotlib.pyplot as plt
 import seaborn as sns
