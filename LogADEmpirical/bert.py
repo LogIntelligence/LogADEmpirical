@@ -1,6 +1,6 @@
 import os
-from logbert.bert_pytorch.dataset import WordVocab
-from logbert.bert_pytorch import Predictor, Trainer
+from LogADEmpirical.bert_pytorch.dataset import WordVocab
+from LogADEmpirical.bert_pytorch import Predictor, Trainer
 
 
 def run_logbert(options):

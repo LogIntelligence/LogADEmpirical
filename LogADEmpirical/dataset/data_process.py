@@ -3,7 +3,7 @@ import gc
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from logbert.logdeep.dataset.session import sliding_window, session_window, session_window_bgl, fixed_window
+from LogADEmpirical.logdeep.dataset.session import sliding_window, session_window, session_window_bgl, fixed_window
 import shutil
 import pickle
 from sklearn.utils import shuffle

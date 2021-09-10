@@ -20,13 +20,13 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.ensemble import IsolationForest as iForest
 
-from logbert.logdeep.dataset.log import log_dataset
-from logbert.logdeep.dataset.sample import sliding_window, load_features
-from logbert.logdeep.tools.utils import plot_train_valid_loss
-from logbert.logdeep.models.lstm import deeplog, loganomaly, robustlog
-from logbert.logdeep.models.autoencoder import AutoEncoder
-from logbert.logdeep.models.cnn import TextCNN
-from logbert.neural_log.transformers import TransformerClassification
+from LogADEmpirical.logdeep.dataset.log import log_dataset
+from LogADEmpirical.logdeep.dataset.sample import sliding_window, load_features
+from LogADEmpirical.logdeep.tools.utils import plot_train_valid_loss
+from LogADEmpirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
+from LogADEmpirical.logdeep.models.autoencoder import AutoEncoder
+from LogADEmpirical.logdeep.models.cnn import TextCNN
+from LogADEmpirical.neural_log.transformers import TransformerClassification
 
 
 class Trainer():

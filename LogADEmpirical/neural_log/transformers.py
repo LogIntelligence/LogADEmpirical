@@ -3,9 +3,9 @@ import torch.nn.functional as F
 import torch
 from torch import nn
 
-from logbert.neural_log.encoding import position_encoding, PositionalEmbedding, PositionalEncoding
-from logbert.neural_log.attention import MultiHeadAttention
-from logbert.neural_log.bottleneck_transformer_helpers import RelPosEmb, AbsPosEmb
+from LogADEmpirical.neural_log.encoding import position_encoding, PositionalEmbedding, PositionalEncoding
+from LogADEmpirical.neural_log.attention import MultiHeadAttention
+from LogADEmpirical.neural_log.bottleneck_transformer_helpers import RelPosEmb, AbsPosEmb
 
 
 def feed_forward(dim_input: int = 512, dim_feedforward: int = 2048) -> nn.Module:

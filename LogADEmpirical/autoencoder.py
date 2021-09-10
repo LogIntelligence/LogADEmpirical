@@ -1,10 +1,10 @@
 import os
 import pickle
 
-from logbert.logdeep.models.lstm import deeplog
-from logbert.logdeep.tools.predict import Predicter
-from logbert.logdeep.tools.train import Trainer
-from logbert.logdeep.dataset.vocab import Vocab
+from LogADEmpirical.logdeep.models.lstm import deeplog
+from LogADEmpirical.logdeep.tools.predict import Predicter
+from LogADEmpirical.logdeep.tools.train import Trainer
+from LogADEmpirical.logdeep.dataset.vocab import Vocab
 
 
 def run_autoencoder(options):

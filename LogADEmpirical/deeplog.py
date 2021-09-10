@@ -1,12 +1,13 @@
 import os
-from logbert.logdeep.models.lstm import loganomaly
-from logbert.logdeep.tools.predict import Predicter
-from logbert.logdeep.tools.train import Trainer
-from logbert.logdeep.dataset.vocab import Vocab
 import pickle
 
+from LogADEmpirical.logdeep.models.lstm import deeplog
+from LogADEmpirical.logdeep.tools.predict import Predicter
+from LogADEmpirical.logdeep.tools.train import Trainer
+from LogADEmpirical.logdeep.dataset.vocab import Vocab
 
-def run_loganomaly(options):
+
+def run_deeplog(options):
     if not os.path.exists(options["vocab_path"]):
         with open(options["train_vocab"], 'rb') as f:
             data = pickle.load(f)
@@ -18,10 +19,9 @@ def run_loganomaly(options):
                 l = x['Label']
             if l == 0:
                 logs.append(x['EventId'])
-        vocab = Vocab(logs, os.path.join(options['data_dir'], "embeddings.json"), "loganomaly")
+        vocab = Vocab(logs, os.path.join(options['data_dir'], "embeddings.json"), "deeplog")
         print("vocab size", len(vocab))
         print("save vocab in", options["vocab_path"])
         vocab.save_vocab(options["vocab_path"])
-
     Trainer(options).start_train()
     Predicter(options).predict_semi_supervised()

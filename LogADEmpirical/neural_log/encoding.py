@@ -6,7 +6,7 @@ import torch.onnx.operators
 
 import math
 
-from logbert.neural_log import utils
+from LogADEmpirical.neural_log import utils
 
 
 def position_encoding(

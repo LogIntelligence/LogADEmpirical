@@ -1,15 +1,15 @@
 from argparse import ArgumentParser
 import os
 
-from logbert.logdeep.tools.utils import seed_everything, save_parameters
-from logbert.deeplog import run_deeplog
-from logbert.loganomaly import run_loganomaly
-from logbert.logrobust import run_logrobust
-from logbert.neurallog import run_neurallog
-from logbert.cnn import run_cnn
-from logbert.bert import run_logbert
-from logbert.autoencoder import run_autoencoder
-from logbert.dataset import process_dataset, parse_log, sample_raw_data, process_instance
+from LogADEmpirical.logdeep.tools.utils import seed_everything, save_parameters
+from LogADEmpirical.deeplog import run_deeplog
+from LogADEmpirical.loganomaly import run_loganomaly
+from LogADEmpirical.logrobust import run_logrobust
+from LogADEmpirical.neurallog import run_neurallog
+from LogADEmpirical.cnn import run_cnn
+from LogADEmpirical.bert import run_logbert
+from LogADEmpirical.autoencoder import run_autoencoder
+from LogADEmpirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
 
