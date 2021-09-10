@@ -188,24 +188,24 @@ def main():
     print("Save options parameters")
     save_parameters(options, options["model_dir"] + "parameters.txt")
 
-    # if args.model_name == "logbert":
-    #     run_logbert(options)
-    # elif args.model_name == "deeplog":
-    #     run_deeplog(options)
-    # elif args.model_name == "loganomaly":
-    #     run_loganomaly(options)
-    # elif args.model_name == "logrobust":
-    #     run_logrobust(options)
-    # elif args.model_name == "neurallog":
-    #     run_neurallog(options)
-    # elif args.model_name == "cnn":
-    #     run_cnn(options)
-    # elif args.model_name == "autoencoder":
-    #     run_autoencoder(options)
-    # elif args.model_name == "baseline":
-    #     pass
-    # else:
-    #     raise NotImplementedError(f"Model {args.model_name} is not defined")
+    if args.model_name == "logbert":
+        run_logbert(options)
+    elif args.model_name == "deeplog":
+        run_deeplog(options)
+    elif args.model_name == "loganomaly":
+        run_loganomaly(options)
+    elif args.model_name == "logrobust":
+        run_logrobust(options)
+    elif args.model_name == "neurallog":
+        run_neurallog(options)
+    elif args.model_name == "cnn":
+        run_cnn(options)
+    elif args.model_name == "autoencoder":
+        run_autoencoder(options)
+    elif args.model_name == "baseline":
+        pass
+    else:
+        raise NotImplementedError(f"Model {args.model_name} is not defined")
 
 
 if __name__ == "__main__":
