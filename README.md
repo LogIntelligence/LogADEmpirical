@@ -29,7 +29,7 @@ Our Spirit and Thunderbird dataset can be found here: [Raw data](https://figshar
 
 The data after log parsing can be found here (for all 4 datasets): [Parsed data](https://figshare.com/s/8e367db4d98cf39203c5)
 
-Training/Testing data and pre-trained models for each RQ can be found here: [Results]()
+Training/Testing data and pre-trained models for each RQ can be found here: [Results](https://figshare.com/s/7c61dd5547730bce41b8)
 
 ### Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
