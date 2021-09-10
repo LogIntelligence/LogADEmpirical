@@ -32,12 +32,13 @@ The data after log parsing can be found here (for all 4 datasets): [Parsed data]
 Training/Testing data and pre-trained models for each RQ can be found here: [Results]()
 
 ### Demo
-- Example with DeepLog on BGL:
+- Example of DeepLog on BGL with fixed window size of 1 hour:
 ```shell script
 python main_run.py --folder=bgl/ --log_file=BGL.log --dataset_name=bgl --model_name=deeplog --window_type=sliding
  --sample=sliding_window --is_logkey --train_size=0.8 --train_ratio=1 --valid_ratio=0.1 --test_ratio=1 --max_epoch=100
  --n_warm_up_epoch=0 --n_epochs_stop=10 --batch_size=1024 --num_candidates=150 --history_size=10 --lr=0.001
- --accumulation_step=5 --session_level=hour --window_size=1 --step_size=1 --output_dir=experimental_results/demo/random/ --is_process
+ --accumulation_step=5 --session_level=hour --window_size=60 --step_size=60 --output_dir=experimental_results/demo
+/random/ --is_process
 ```
 - For more explanation of parameters:
 ```shell script
