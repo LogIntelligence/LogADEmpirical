@@ -5,10 +5,8 @@ from logadempirical.logdeep.tools.utils import seed_everything, save_parameters
 from logadempirical.deeplog import run_deeplog
 from logadempirical.loganomaly import run_loganomaly
 from logadempirical.logrobust import run_logrobust
-from logadempirical.neurallog import run_neurallog
 from logadempirical.cnn import run_cnn
 from logadempirical.bert import run_logbert
-from logadempirical.autoencoder import run_autoencoder
 from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
@@ -196,12 +194,8 @@ def main():
         run_loganomaly(options)
     elif args.model_name == "logrobust":
         run_logrobust(options)
-    elif args.model_name == "neurallog":
-        run_neurallog(options)
     elif args.model_name == "cnn":
         run_cnn(options)
-    elif args.model_name == "autoencoder":
-        run_autoencoder(options)
     elif args.model_name == "baseline":
         pass
     else:

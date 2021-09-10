@@ -149,5 +149,16 @@ dmypy.json
 *.pth
 */*.pth
 
+*.zip
+**.zip
+*/*.zip
+**/**.zip
+
+
+*.tmp
+**.tmp
+*/*.tmp
+**/**.tmp
+
 # testing
 untitled8.py
