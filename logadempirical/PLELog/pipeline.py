@@ -309,14 +309,14 @@ def run_PLELog(options):
     gpu = torch.cuda.is_available()
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--config_file', default='./logadempirical/PLELog/config/BGL.cfg',
+    argparser.add_argument('--config_file', default='./logadempirical/PLELog/config/{}.cfg',
                            help='Configuration file for Attention-Based GRU Network.')
     argparser.add_argument('--gpu', default=0, type=int, help='GPU ID if using cuda, -1 if cpu.')
     argparser.add_argument('--thread', default=1, type=int, help='Number of thread to use. Default value is 1')
     argparser.add_argument('--hdbscan_option', default=0, type=int,
                            help='Different strategies of HDBSCAN clustering. 0 for PLELog_noP, 1 for PLELog, -1 for upperbound.')
-    argparser.add_argument('--dataset', default='bgl', type=str, help='Choose dataset, bgl, hdfs, spirit, '
-                                                                      'or tdb (thunderbird)')
+    # argparser.add_argument('--dataset', default='bgl', type=str, help='Choose dataset, bgl, hdfs, spirit, '
+    #                                                                   'or tdb (thunderbird)')
     argparser.add_argument('--train_ratio', default=7, type=int, help='Ratio of train data.')
     argparser.add_argument('--dev_ratio', default=1, type=int, help='Ratio of dev data.')
     argparser.add_argument('--test_ratio', default=2, type=int, help='Ratio of test data.')
@@ -328,11 +328,12 @@ def run_PLELog(options):
                            help='Threshold for final classification, any instance with "anomalous score" higher than this threshold will be regarded as anomaly.')
 
     args, extra_args = argparser.parse_known_args()
-    config_file = args.config_file
+    config_file = args.config_file.format(options['dataset_name'].upper())
+    dataset = options['dataset_name']
     target_gpu = args.gpu
     ratios = [args.train_ratio, args.dev_ratio, args.test_ratio]
 
-    dataset = args.dataset
+    # dataset = args.dataset
     hdbscan_option = args.hdbscan_option
     thread_num = args.thread
     min_samples = args.min_samples
