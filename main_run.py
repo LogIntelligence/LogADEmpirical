@@ -7,6 +7,7 @@ from logadempirical.loganomaly import run_loganomaly
 from logadempirical.logrobust import run_logrobust
 from logadempirical.cnn import run_cnn
 from logadempirical.bert import run_logbert
+from logadempirical.plelog import run_plelog
 from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
@@ -22,7 +23,7 @@ def arg_parser():
     parser = ArgumentParser()
     parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly",
                                                                               "logrobust", "baseline", "neurallog",
-                                                                              "cnn", "autoencoder"])
+                                                                              "cnn", "autoencoder", "plelog"])
     parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
                                                                                 "bgl_2k", "tdb", "spirit", "bo",
                                                                                 "bgl2", "hadoop"])
@@ -196,6 +197,8 @@ def main():
         run_logrobust(options)
     elif args.model_name == "cnn":
         run_cnn(options)
+    elif args.model_name == "plelog":
+        run_plelog(options)
     elif args.model_name == "baseline":
         pass
     else:

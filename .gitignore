@@ -116,6 +116,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+logs/
+dataset/*.vec
 
 # Spyder project settings
 .spyderproject
