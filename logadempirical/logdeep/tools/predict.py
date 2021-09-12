@@ -131,7 +131,7 @@ class Predicter():
         test_normal_length = sum(num_normal_session_logs)
         res = [0, 0, 0, 0, 0, 0, 0, 0]  # th,tp, tn, fp, fn,  p, r, f1
         # print(threshold_range)
-        for th in range(threshold_range, threshold_range - 1, -1):
+        for th in range(threshold_range, 0, -1):
             FP = self.compute_anomaly(test_normal_results, num_normal_session_logs, th + 1)
             TP = self.compute_anomaly(test_abnormal_results, num_abnormal_session_logs, th + 1)
             if TP == 0:
