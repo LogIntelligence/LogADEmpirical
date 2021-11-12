@@ -107,7 +107,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
             window_df = sliding(df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]],
                                        para={"window_size": window_size,
                                              "step_size": step_size})
-            window_df = window_df.sample(frac=1, random_state=1).reset_index(drop=True)
+            window_df = shuffle(window_df).reset_index(drop=True)
             n_train = int(len(window_df) * train_size)
             train_window = window_df.iloc[:n_train, :].to_dict("records")
             test_window = window_df.iloc[n_train:, :].to_dict("records")
@@ -132,6 +132,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
                 label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
             window_df = session_window(df, id_regex, label_dict)
+            window_df = shuffle(window_df).reset_index(drop=True)
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
