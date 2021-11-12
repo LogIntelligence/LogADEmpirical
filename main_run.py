@@ -135,6 +135,7 @@ def arg_parser():
 
 
 def main():
+    seed_everything(seed=1234)
     parser = arg_parser()
     args = parser.parse_args()
 
@@ -182,7 +183,6 @@ def main():
     if not os.path.exists(options["model_dir"]):
         os.mkdir(options["model_dir"])
 
-    seed_everything(seed=1234)
 
     print("Save options parameters")
     save_parameters(options, options["model_dir"] + "parameters.txt")
