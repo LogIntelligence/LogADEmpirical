@@ -11,6 +11,7 @@ from logadempirical.plelog import run_plelog
 from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
+import time
 
 sys.path.append("../../")
 
@@ -135,7 +136,7 @@ def arg_parser():
 
 
 def main():
-    # seed_everything(seed=1234)
+    seed_everything(seed=time.clock())
     parser = arg_parser()
     args = parser.parse_args()
 
