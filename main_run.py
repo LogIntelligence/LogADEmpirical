@@ -135,7 +135,7 @@ def arg_parser():
 
 
 def main():
-    seed_everything(seed=1234)
+    # seed_everything(seed=1234)
     parser = arg_parser()
     args = parser.parse_args()
 
