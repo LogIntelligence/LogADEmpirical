@@ -321,13 +321,13 @@ def load_from_structured(logID2Temp, fixLength, ratio=[7, 1, 2], dataset="BGL", 
                                             id2temp=logID2Temp,
                                             idx=0
                                             )
-
+    train = train[:100000]
     val, _, idx = sliding_window_test(data[n_train:],
                                       window_size=10,
                                       id2temp=logID2Temp,
                                       idx=idx
                                       )
-
+    val = val[:20000]
     data = load_features("{}/test.pkl".format(output_dir), only_normal=False)
 
     test, _, _ = sliding_window_test(data,
