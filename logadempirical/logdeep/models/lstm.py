@@ -106,16 +106,16 @@ class loganomaly(nn.Module):
 
     def forward(self, features, device):
         # print(len(features), "fdsklfjsd")
-        input0, input1 = features[0], features[1]
+        input0, input1 = features[2], features[1]
         # print(input1.shape)
-        embed0 = self.embedding(input0)
+        # embed0 = self.embedding(input0)
 
-        h0_0 = torch.zeros(self.num_layers, embed0.size(0),
+        h0_0 = torch.zeros(self.num_layers, input0.size(0),
                            self.hidden_size).to(device)
-        c0_0 = torch.zeros(self.num_layers, embed0.size(0),
+        c0_0 = torch.zeros(self.num_layers, input0.size(0),
                            self.hidden_size).to(device)
 
-        out0, _ = self.lstm0(embed0, (h0_0, c0_0))
+        out0, _ = self.lstm0(input0, (h0_0, c0_0))
 
         h0_1 = torch.zeros(self.num_layers, input1.size(0),
                            self.hidden_size).to(device)

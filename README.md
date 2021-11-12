@@ -3,7 +3,7 @@
  have been proposed to automatically detect system anomalies based on log data. These models typically claim very high detection accuracy. For example, most models report an F-measure greater than 0.9 on the commonly-used HDFS dataset. To achieve a profound understanding of how far we are from solving the problem of log-based anomaly detection, in this paper, we conduct an in-depth analysis of five state-of-the-art deep learning-based models for detecting system anomalies on four public log datasets. Our experiments focus on several aspects of model evaluation, including training data selection, data grouping, class distribution, data noise, and early detection ability. Our results point out that all these aspects have significant impact on the evaluation, and that all the studied models do not always work well. The problem of log-based anomaly detection has not been solved yet. Based on our findings, we also suggest possible future work.
 This repository provides the implementation of recent log-based anomaly detection methods.
 
-### Studied Models
+### I. Studied Models
 | Model | Paper |
 | :--- | :--- |
 | DeepLog | [DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning](https://dl.acm.org/doi/abs/10.1145/3133956.3134015) |
@@ -12,7 +12,7 @@ This repository provides the implementation of recent log-based anomaly detectio
 | LogRobust | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931) |
 | CNN | [Detecting Anomaly in Big Data System Logs Using Convolutional Neural Network](https://ieeexplore.ieee.org/document/8511880) |
 
-### Requirements
+### II. Requirements
 - Python 3
 - NVIDIA GPU + CUDA cuDNN
 - PyTorch 1.7.0
@@ -23,15 +23,40 @@ The required packages are listed in requirements.txt. Install:
 pip install -r requirements.txt
 ```
 
-### Data and Results
-BGL and HDFS dataset can be found here: [Loghub](https://zenodo.org/record/3227177).
-Our Spirit and Thunderbird dataset can be found here: [Raw data](https://figshare.com/s/4d2e5634c5b94a6e64f6).
+### III. Data and Results
+BGL and HDFS datasets can be found here: [Loghub](https://zenodo.org/record/3227177).
+Our Spirit and Thunderbird datasets can be found here: [Raw data](https://figshare.com/s/4d2e5634c5b94a6e64f6).
 
 The data after log parsing can be found here (for all 4 datasets): [Parsed data](https://figshare.com/s/8e367db4d98cf39203c5)
 
 Training/Testing data and pre-trained models for each RQ can be found here: [Results](https://figshare.com/s/7c61dd5547730bce41b8)
+#### 1. RQ1
+- Chronological:
 
-### Demo
+|   Dataset   |   | DeepLog | LogAnomaly | LogRobust |  CNN  | PLELog |
+|:-----------:|---|:-------:|:----------:|:---------:|:-----:|:------:|
+|     BGL     | P |  0.270  |    0.313   |   0.994   | 0.871 |  0.702 |
+|             | R |  0.988  |    0.798   |   0.942   | 0.947 |  0.791 |
+|             | S |  0.437  |    0.551   |   0.999   | 0.970 |  0.899 |
+|             | F |  0.426  |    0.483   |   0.967   | 0.908 |  0.744 |
+|    Spirit   | P |  0.438  |    0.438   |   0.985   | 0.986 |  0.931 |
+|             | R |   1.0   |     1.0    |   0.915   |  1.0  |  0.767 |
+|             | S |  0.090  |    0.090   |   0.990   | 0.990 |  0.690 |
+|             | F |  0.609  |    0.609   |   0.949   | 0.993 |  0.841 |
+| Thunderbird | P |  0.200  |    0.229   |   0.900   | 0.889 |  0.900 |
+|             | R |   1.0   |     1.0    |    1.0    |  1.0  |   1.0  |
+|             | S |    0    |    0.156   |   0.969   | 0.969 |  0.250 |
+|             | F |  0.333  |    0.371   |   0.947   | 0.941 |  0.400 |
+
+- Random:
+
+
+#### 2. RQ2
+#### 3. RQ3
+#### 4. RQ4
+#### 5. RQ5
+
+### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
 ```shell script
 python main_run.py --folder=bgl/ --log_file=BGL.log --dataset_name=bgl --model_name=deeplog --window_type=sliding

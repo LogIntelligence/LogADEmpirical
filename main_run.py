@@ -136,7 +136,7 @@ def arg_parser():
 
 
 def main():
-    seed_everything(seed=time.clock())
+    seed_everything(seed=int(time.clock()))
     parser = arg_parser()
     args = parser.parse_args()
 

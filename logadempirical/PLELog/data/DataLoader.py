@@ -50,7 +50,7 @@ def data_iter(data, batch_size, shuffle=True):
     """
 
     batched_data = []
-    np.random.seed(6)
+    # np.random.seed(6)
     if shuffle: np.random.shuffle(data)
     batched_data.extend(list(batch_slice(data, batch_size)))
     if shuffle: np.random.shuffle(batched_data)

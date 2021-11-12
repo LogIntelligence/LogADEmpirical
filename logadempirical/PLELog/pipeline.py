@@ -21,8 +21,8 @@ start = time.time()
 vocab = None
 refresh = False
 random_state = 6
-random.seed(random_state)
-np.random.seed(random_state)
+#random.seed(random_state)
+#np.random.seed(random_state)
 
 
 def record_data(dir, train, dev, test):

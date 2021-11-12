@@ -4,8 +4,8 @@ from scipy.spatial.distance import cdist
 
 from logadempirical.PLELog.data.DataLoader import *
 
-random.seed(6)
-np.random.seed(6)
+#random.seed(6)
+#np.random.seed(6)
 
 idx = 0
 dup = {}
