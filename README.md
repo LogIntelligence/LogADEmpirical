@@ -53,7 +53,7 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 
 #### 2. RQ2
 - Fixed windows:
-
+![Random results](pictures/RQ2_fixed.PNG)
 - Session:
 ![Random results](pictures/RQ2_session.PNG)
 #### 3. RQ3
@@ -74,3 +74,6 @@ python main_run.py --folder=bgl/ --log_file=BGL.log --dataset_name=bgl --model_n
 python main_run.py --help
 ```
 
+### V. Hyperparameters
+All hyperpameters can be found in file parameters.txt in [Results](https://figshare.com/s/7c61dd5547730bce41b8). The
+ hyperparameters are fine-tuned for each dataset.
