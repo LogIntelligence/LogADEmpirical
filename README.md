@@ -49,9 +49,13 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 |             | F |  0.333  |    0.371   |   0.947   | 0.941 |  0.400 |
 
 - Random:
-
+![Random results](pictures/random_5rounds.PNG)
 
 #### 2. RQ2
+- Fixed windows:
+
+- Session:
+![Random results](pictures/RQ2_session.PNG)
 #### 3. RQ3
 #### 4. RQ4
 #### 5. RQ5
