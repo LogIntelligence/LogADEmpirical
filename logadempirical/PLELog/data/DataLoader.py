@@ -284,8 +284,8 @@ def loadBGLLogs_node_fixLength(logID2Temp, fixLength):
     return window_list
 
 
-def load_templates_from_structured(dir, logger, dataset="BGL"):
-    filePath = os.path.join(dir, '{}.log_templates.csv'.format(dataset.upper()))
+def load_templates_from_structured(dir, logger, dataset="BGL", log_file="BGL.log"):
+    filePath = os.path.join(dir, '{}_templates.csv'.format(log_file))
     print(filePath)
     templates = []
     logID2Temp = {}

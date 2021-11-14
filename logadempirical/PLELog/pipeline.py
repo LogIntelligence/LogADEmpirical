@@ -21,8 +21,10 @@ start = time.time()
 vocab = None
 refresh = False
 random_state = 6
-#random.seed(random_state)
-#np.random.seed(random_state)
+
+
+# random.seed(random_state)
+# np.random.seed(random_state)
 
 
 def record_data(dir, train, dev, test):
@@ -296,7 +298,7 @@ def main_process(save_path, pre_train, pre_dev, pre_test, ratios, hdbscan_option
     vocab = pickle.load(open(config.save_vocab_path, 'rb'))
     vec = vocab.load_pretrained_embs(config.pretrained_embeddings_file)
     res = evaluate_online(pre_test, config, vocab, logger, vec, outputFile=None, threshold=threshold,
-                     id2tem=logID2Temp, dat=dataset)
+                          id2tem=logID2Temp, dat=dataset)
 
     return res
 
@@ -360,7 +362,8 @@ def run_PLELog(options):
         templatesDir = 'dataset/' + dataset
         save_path = 'dataset/' + dataset
         print(templatesDir, logger)
-        logID2Temp, templates = load_templates_from_structured(templatesDir, logger, dataset)
+        logID2Temp, templates = load_templates_from_structured(templatesDir, logger, dataset,
+                                                               log_file=options['log_file'])
         templateVocab = nlp_emb_mergeTemplateEmbeddings_BGL(save_path, templates, dataset, logger)
         pre_train, pre_dev, pre_test, _ = prepare_data(logID2Temp, templateVocab, dataset, fixLength, logger, ratios,
                                                        output_dir=options['output_dir'])
@@ -370,7 +373,8 @@ def run_PLELog(options):
 
     print("Start training...")
     train_save_path = options['output_dir'] + "plelog/"
-    result = main_process(save_path=train_save_path, pre_train=pre_train, pre_dev=pre_dev, pre_test=pre_test, ratios=ratios,
+    result = main_process(save_path=train_save_path, pre_train=pre_train, pre_dev=pre_dev, pre_test=pre_test,
+                          ratios=ratios,
                           hdbscan_option=hdbscan_option,
                           min_samples=min_samples,
                           min_cluster_size=min_cluster_size, reduce_dim=reduce_dim,

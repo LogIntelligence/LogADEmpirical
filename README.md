@@ -57,8 +57,18 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 - Session:
 ![Random results](pictures/RQ2_session.PNG)
 #### 3. RQ3
+- HDFS:
+- BGL:
+- Spirit
+- Thunderbird:
+
 #### 4. RQ4
+- Mislabeled logs:
+- Log parsing:
 #### 5. RQ5
+- 100 logs:
+- 200 logs:
+- 1 hour logs:
 
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
