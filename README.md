@@ -30,8 +30,8 @@ Our Spirit and Thunderbird datasets can be found here: [Raw data](https://figsha
 The data after log parsing can be found here (for all 4 datasets): [Parsed data](https://figshare.com/s/8e367db4d98cf39203c5)
 
 Training/Testing data and pre-trained models for each RQ can be found here: [Results](https://figshare.com/s/7c61dd5547730bce41b8)
-#### 1. RQ1
-- Chronological:
+#### 1.  RQ1: How do the existing models perform with different training data selection strategies?
+- Chronological selection:
 
 |   Dataset   |   | DeepLog | LogAnomaly | LogRobust |  CNN  | PLELog |
 |:-----------:|---|:-------:|:----------:|:---------:|:-----:|:------:|
@@ -48,27 +48,21 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 |             | S |    0    |    0.156   |   0.969   | 0.969 |  0.250 |
 |             | F |  0.333  |    0.371   |   0.947   | 0.941 |  0.400 |
 
-- Random:
+- Random selection:
 ![Random results](pictures/random_5rounds.PNG)
 
-#### 2. RQ2
-- Fixed windows:
+#### 2. RQ2: How do the existing models perform with different data grouping methods?
+- Fixed-window grouping:
 ![Random results](pictures/RQ2_fixed.PNG)
-- Session:
+- Session-window grouping:
 ![Random results](pictures/RQ2_session.PNG)
-#### 3. RQ3
-- HDFS:
-- BGL:
-- Spirit
-- Thunderbird:
+#### 3.  RQ3: How do the existing approaches perform with different class distributions?
+Will be available soon...
 
-#### 4. RQ4
-- Mislabeled logs:
-- Log parsing:
-#### 5. RQ5
-- 100 logs:
-- 200 logs:
-- 1 hour logs:
+#### 4. RQ4: Can existing methods work with different degrees of data noise?
+Will be available soon...
+#### RQ5: How early can the existing models detect anomalies in online detection?
+Will be available soon...
 
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
