@@ -62,12 +62,28 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 ![Random results](pictures/RQ2_session.PNG)
 
 #### 3.  RQ3: How do the existing approaches perform with different class distributions?
-Will be available soon...
+
+- Different class distributions on the HDFS dataset:
+
+![Random results](pictures/RQ3_distribution.PNG)
+
+Full results will be available soon...
 
 #### 4. RQ4: Can existing methods work with different degrees of data noise?
-Will be available soon...
+- The impact of mislabelled logs on the HDFS dataset:
+
+![Random results](pictures/RQ4_mislabel.PNG)
+
+- The impact of log parsing errors on the Spirit dataset:
+
+![Random results](pictures/RQ4_logparsing.PNG)
+
+Full results will be available soon...
 #### RQ5: How early can the existing models detect anomalies in online detection?
-Will be available soon...
+- The number of examined log messages before each model can detect an anomaly:
+
+![Random results](pictures/RQ5_comparison.PNG)
+Full results will be available soon...
 
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
