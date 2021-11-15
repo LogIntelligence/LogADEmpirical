@@ -52,6 +52,8 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 
 ![Random results](pictures/random_5rounds.PNG)
 
+R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies. 
+
 #### 2. RQ2: How do the existing models perform with different data grouping methods?
 - Fixed-window grouping:
 
