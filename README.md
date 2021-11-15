@@ -49,13 +49,18 @@ Training/Testing data and pre-trained models for each RQ can be found here: [Res
 |             | F |  0.333  |    0.371   |   0.947   | 0.941 |  0.400 |
 
 - Random selection:
+
 ![Random results](pictures/random_5rounds.PNG)
 
 #### 2. RQ2: How do the existing models perform with different data grouping methods?
 - Fixed-window grouping:
+
 ![Random results](pictures/RQ2_fixed.PNG)
+
 - Session-window grouping:
+
 ![Random results](pictures/RQ2_session.PNG)
+
 #### 3.  RQ3: How do the existing approaches perform with different class distributions?
 Will be available soon...
 
