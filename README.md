@@ -81,19 +81,27 @@ R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies.
 
 Full results will be available soon...
 #### RQ5: How early can the existing models detect anomalies in online detection?
-- The number of examined log messages before each model can detect an anomaly:
 
-![100 logs leadtime](pictures/RQ5_comparison.PNG)
+<figure>
+<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_comparison.PNG" alt="Trulli" style="width:100%">
+<figcaption><i>The number of examined log messages before each model can detect an anomaly (100-logs
+ setting)</i></figcaption>
+</figure>
 
-*The number of examined log messages before each model can detect an anomaly (100-logs setting)*
+<figure>
+<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_200.png" alt="Trulli" style="width
+:100%">
+<figcaption><i>The number of examined log messages before each model can detect an anomaly (200-logs
+ setting)</i></figcaption>
+</figure>
 
-![200 logs leadtime](pictures/RQ5_200.png)
+<figure>
+<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_0.5h.png" alt="Trulli" style="width
+:100%">
+<figcaption><i>The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)</i
+></figcaption>
+</figure>
 
-*The number of examined log messages before each model can detect an anomaly (200-logs setting)*
-
-![0.5-hour logs leadtime](pictures/RQ5_0.5h.png)
-
-*The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)*
 
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
