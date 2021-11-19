@@ -88,6 +88,7 @@ Full results will be available soon...
  setting)</i></figcaption>
 </figure>
 
+-------------------------
 
 <figure>
 <img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_200.png" alt="Trulli" style="width
@@ -96,6 +97,8 @@ Full results will be available soon...
  setting)</i></figcaption>
 </figure>
 
+
+-------------------------
 
 <figure>
 <img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_0.5h.png" alt="Trulli" style="width
