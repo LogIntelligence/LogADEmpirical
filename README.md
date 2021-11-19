@@ -90,14 +90,14 @@ Full results will be available soon...
 
 <figure>
 <img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_200.png" alt="Trulli" style="width
-:90%">
+:95%">
 <figcaption><i>The number of examined log messages before each model can detect an anomaly (200-logs
  setting)</i></figcaption>
 </figure>
 
 <figure>
 <img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_0.5h.png" alt="Trulli" style="width
-:90%">
+:95%">
 <figcaption><i>The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)</i
 ></figcaption>
 </figure>
