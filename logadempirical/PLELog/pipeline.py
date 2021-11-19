@@ -236,65 +236,65 @@ def main_process(save_path, pre_train, pre_dev, pre_test, ratios, hdbscan_option
                  threshold=0.5, dataset="BGL", logID2Temp={}):
     mpl.use('Agg')
     gpu = torch.cuda.is_available()
-    # mid_dir = 'train-' + str(ratios[0])
-    # save_path = os.path.join(save_path, mid_dir)
-    # min_samples = min_samples if min_samples != -1 else min_cluster_size
-    # postfix = 'rd-' + str(reduce_dim) + '_mcs-' + str(min_cluster_size) + '_ms-' + str(min_samples) + '_random-' + str(
-    #     random_state)
-    # save_path = os.path.join(save_path, postfix)
-    # logger.info('Save Hdbscan results in %s' % save_path)
-    # if hdbscan_option != -1:
-    #     logger.info('Start HDBSCAN Training.')
-    #     logger.info('Min_cluster_size=%d, min_samples = %d' % (min_cluster_size, min_samples))
-    #     train, dev, test, precision, recall, f, num_of_neg1, num_outlier0 = PULearn(pre_train, pre_dev, pre_test,
-    #                                                                                 save_path, min_cluster_size,
-    #                                                                                 min_samples,
-    #                                                                                 hdbscan_option,
-    #                                                                                 rd=reduce_dim,
-    #                                                                                 logger=logger)
-    #
-    #
-    # else:
-    #     postfix = 'upperbound'
-    #     save_path = os.path.join(save_path, postfix)
-    #     logger.info('Upperbound.')
-    #     record_data(save_path, pre_train, pre_dev, pre_test)
-    #     train, dev, test = pre_train, pre_dev, pre_test
-    #     precision, recall, f = 1, 1, 1
-    #     num_of_neg1, num_outlier0 = 0, 0
-    #
-    # vocab = creatVocab(train)
-    # # logger.info('Load configfile %s' % config_file)
-    # # config = Configurable(config_file, extra_args)
-    # torch.set_num_threads(thread_num)
-    # vec = vocab.load_pretrained_embs(config.pretrained_embeddings_file)
-    # pickle.dump(vocab, open(config.save_vocab_path, 'wb'))
-    # config.use_cuda = False
-    # if gpu and target_gpu != -1:
-    #     config.use_cuda = True
-    #     torch.cuda.set_device(target_gpu)
-    #     logger.info('GPU ID:' + str(target_gpu))
-    # logger.info("\nGPU using status: " + str(config.use_cuda))
-    # model = AttGRUModel(vocab, config, vec)
-    # if config.use_cuda:
-    #     model = model.cuda(target_gpu)
-    # classifier = AnomalyDetectionBCELoss(model, vocab)
-    # outputFile = dataset + '_' + str(hdbscan_option) + '_mcs-' + str(min_cluster_size) + '_ms' + str(
-    #     min_samples) + '_rd-' + str(reduce_dim) \
-    #              + '_hidden-' + str(config.lstm_hiddens) + '_layers-' + str(config.lstm_layers) + '.out'
-    # outputFile = os.path.join('output_res', outputFile)
-    # dev_p, dev_r, dev_f, final_p, final_r, final_f = train_model(train, dev, test, classifier, vocab, config,
-    #                                                              vec=vec, logger=logger, outputFile=outputFile,
-    #                                                              threshold=threshold)
-    # res = ','.join([str(hdbscan_option), dataset, str(len(train)), str(len(dev)), str(len(test)),
-    #                 str(reduce_dim), str(min_cluster_size), str(min_samples), str(config.lstm_hiddens),
-    #                 str(config.lstm_layers),
-    #                 str(num_of_neg1), str(num_outlier0),
-    #                 str(precision), str(recall), str(f),
-    #                 str(final_p), str(final_r), str(final_f),
-    #                 str(dev_p), str(dev_r), str(dev_f)
-    #                 ])
-    # print(res)
+    mid_dir = 'train-' + str(ratios[0])
+    save_path = os.path.join(save_path, mid_dir)
+    min_samples = min_samples if min_samples != -1 else min_cluster_size
+    postfix = 'rd-' + str(reduce_dim) + '_mcs-' + str(min_cluster_size) + '_ms-' + str(min_samples) + '_random-' + str(
+        random_state)
+    save_path = os.path.join(save_path, postfix)
+    logger.info('Save Hdbscan results in %s' % save_path)
+    if hdbscan_option != -1:
+        logger.info('Start HDBSCAN Training.')
+        logger.info('Min_cluster_size=%d, min_samples = %d' % (min_cluster_size, min_samples))
+        train, dev, test, precision, recall, f, num_of_neg1, num_outlier0 = PULearn(pre_train, pre_dev, pre_test,
+                                                                                    save_path, min_cluster_size,
+                                                                                    min_samples,
+                                                                                    hdbscan_option,
+                                                                                    rd=reduce_dim,
+                                                                                    logger=logger)
+
+
+    else:
+        postfix = 'upperbound'
+        save_path = os.path.join(save_path, postfix)
+        logger.info('Upperbound.')
+        record_data(save_path, pre_train, pre_dev, pre_test)
+        train, dev, test = pre_train, pre_dev, pre_test
+        precision, recall, f = 1, 1, 1
+        num_of_neg1, num_outlier0 = 0, 0
+
+    vocab = creatVocab(train)
+    # logger.info('Load configfile %s' % config_file)
+    # config = Configurable(config_file, extra_args)
+    torch.set_num_threads(thread_num)
+    vec = vocab.load_pretrained_embs(config.pretrained_embeddings_file)
+    pickle.dump(vocab, open(config.save_vocab_path, 'wb'))
+    config.use_cuda = False
+    if gpu and target_gpu != -1:
+        config.use_cuda = True
+        torch.cuda.set_device(target_gpu)
+        logger.info('GPU ID:' + str(target_gpu))
+    logger.info("\nGPU using status: " + str(config.use_cuda))
+    model = AttGRUModel(vocab, config, vec)
+    if config.use_cuda:
+        model = model.cuda(target_gpu)
+    classifier = AnomalyDetectionBCELoss(model, vocab)
+    outputFile = dataset + '_' + str(hdbscan_option) + '_mcs-' + str(min_cluster_size) + '_ms' + str(
+        min_samples) + '_rd-' + str(reduce_dim) \
+                 + '_hidden-' + str(config.lstm_hiddens) + '_layers-' + str(config.lstm_layers) + '.out'
+    outputFile = os.path.join('output_res', outputFile)
+    dev_p, dev_r, dev_f, final_p, final_r, final_f = train_model(train, dev, test, classifier, vocab, config,
+                                                                 vec=vec, logger=logger, outputFile=outputFile,
+                                                                 threshold=threshold)
+    res = ','.join([str(hdbscan_option), dataset, str(len(train)), str(len(dev)), str(len(test)),
+                    str(reduce_dim), str(min_cluster_size), str(min_samples), str(config.lstm_hiddens),
+                    str(config.lstm_layers),
+                    str(num_of_neg1), str(num_outlier0),
+                    str(precision), str(recall), str(f),
+                    str(final_p), str(final_r), str(final_f),
+                    str(dev_p), str(dev_r), str(dev_f)
+                    ])
+    print(res)
     vocab = pickle.load(open(config.save_vocab_path, 'rb'))
     vec = vocab.load_pretrained_embs(config.pretrained_embeddings_file)
     res = evaluate_online(pre_test, config, vocab, logger, vec, outputFile=None, threshold=threshold,
