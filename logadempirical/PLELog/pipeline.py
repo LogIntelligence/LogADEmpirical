@@ -359,8 +359,8 @@ def run_PLELog(options):
     logger.setLevel(logging.INFO)
 
     if dataset == "hdfs" or dataset == "bgl" or dataset == "spirit" or dataset == "tdb":
-        templatesDir = 'dataset/' + dataset
-        save_path = 'dataset/' + dataset
+        templatesDir = options['data_dir'] + dataset
+        save_path = options['data_dir'] + dataset
         print(templatesDir, logger)
         logID2Temp, templates = load_templates_from_structured(templatesDir, logger, dataset,
                                                                log_file=options['log_file'])
