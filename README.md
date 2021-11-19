@@ -84,12 +84,15 @@ Full results will be available soon...
 - The number of examined log messages before each model can detect an anomaly:
 
 ![100 logs leadtime](pictures/RQ5_comparison.PNG)
+
 *The number of examined log messages before each model can detect an anomaly (100-logs setting)*
 
 ![200 logs leadtime](pictures/RQ5_200.png)
+
 *The number of examined log messages before each model can detect an anomaly (200-logs setting)*
 
 ![0.5-hour logs leadtime](pictures/RQ5_0.5h.png)
+
 *The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)*
 
 ### IV. Demo
