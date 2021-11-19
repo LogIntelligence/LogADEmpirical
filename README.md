@@ -84,6 +84,7 @@ Full results will be available soon...
 - The number of examined log messages before each model can detect an anomaly:
 
 ![Random results](pictures/RQ5_comparison.PNG)
+
 Full results will be available soon...
 
 ### IV. Demo
