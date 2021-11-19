@@ -83,9 +83,14 @@ Full results will be available soon...
 #### RQ5: How early can the existing models detect anomalies in online detection?
 - The number of examined log messages before each model can detect an anomaly:
 
-![Random results](pictures/RQ5_comparison.PNG)
+![100 logs leadtime](pictures/RQ5_comparison.PNG)
+*The number of examined log messages before each model can detect an anomaly (100-logs setting)*
 
-Full results will be available soon...
+![200 logs leadtime](pictures/RQ5_200.png)
+*The number of examined log messages before each model can detect an anomaly (200-logs setting)*
+
+![0.5-hour logs leadtime](pictures/RQ5_0.5h.png)
+*The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)*
 
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:

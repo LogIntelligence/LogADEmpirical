@@ -309,31 +309,31 @@ def load_from_structured(logID2Temp, fixLength, ratio=[7, 1, 2], dataset="BGL", 
     print(output_dir)
     data = load_features("{}/train.pkl".format(output_dir), only_normal=False)
     n_train = int(len(data) * 9 / 10)
-    if dataset == 'hdfs':
-        train, _, idx = sliding_window(data[:n_train],
-                                       window_size=10,
-                                       id2temp=logID2Temp,
-                                       idx=0
-                                       )
-    else:
-        train, _, idx = sliding_window_test(data[:n_train],
-                                            window_size=10,
-                                            id2temp=logID2Temp,
-                                            idx=0
-                                            )
-    train = train[:100000]
-    val, _, idx = sliding_window_test(data[n_train:],
-                                      window_size=10,
-                                      id2temp=logID2Temp,
-                                      idx=idx
-                                      )
-    val = val[:20000]
+    # if dataset == 'hdfs':
+    #     train, _, idx = sliding_window(data[:n_train],
+    #                                    window_size=10,
+    #                                    id2temp=logID2Temp,
+    #                                    idx=0
+    #                                    )
+    # else:
+    #     train, _, idx = sliding_window_test(data[:n_train],
+    #                                         window_size=10,
+    #                                         id2temp=logID2Temp,
+    #                                         idx=0
+    #                                         )
+    train = []#train[:100000]
+    # val, _, idx = sliding_window_test(data[n_train:],
+    #                                   window_size=10,
+    #                                   id2temp=logID2Temp,
+    #                                   idx=idx
+    #                                   )
+    val = []#val[:20000]
     data = load_features("{}/test.pkl".format(output_dir), only_normal=False)
 
     test, _, _ = sliding_window_test(data,
                                      window_size=10,
                                      id2temp=logID2Temp,
-                                     idx=idx
+                                     idx=0
                                      )
     return train, val, test
     # from sklearn.utils import shuffle

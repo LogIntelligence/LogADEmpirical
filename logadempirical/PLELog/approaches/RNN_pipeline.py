@@ -195,6 +195,7 @@ def evaluate_online(data, config, vocab, logger, vec={}, outputFile=None, thresh
     FP = 0
     TN = 0
     FN = 0
+    lead_time = []
     for idx, (line, lbls) in enumerate(test_data):
         line = list(line)
         seq_len = max(10, len(line))
@@ -217,10 +218,13 @@ def evaluate_online(data, config, vocab, logger, vec={}, outputFile=None, thresh
             sequential_pattern = "-".join(sequential_pattern)
             if sequential_pattern in abnormal_insts:
                 if label == 1:
+                    lead_time.append(i + 11)
                     TP += 1
                 else:
                     FP += 1
                 break
+    with open("{0}/plelog-leadtime.txt".format(config.save_dir), mode="w", encoding="utf8") as f:
+        [f.write(str(x) + "\n") for x in lead_time]
     TN = TN - FP
     FN = FN - TP
     logger.info('TP: %d, TN: %d, FN: %d, FP: %d' % (TP, TN, FN, FP))
