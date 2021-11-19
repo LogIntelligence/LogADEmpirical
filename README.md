@@ -67,7 +67,7 @@ R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies.
 
 - Different class distributions on the HDFS dataset:
 
-![Random results](pictures/RQ3_distribution_full.PNG)
+![Random results](pictures/RQ3_distribution_full.png)
 
 
 #### 4. RQ4: Can existing methods work with different degrees of data noise?
