@@ -57,7 +57,7 @@ R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies.
 #### 2. RQ2: How do the existing models perform with different data grouping methods?
 - Fixed-window grouping:
 
-![Random results](pictures/RQ2_fixed.PNG)
+![Random results](pictures/RQ2_fixed.png)
 
 - Session-window grouping:
 
