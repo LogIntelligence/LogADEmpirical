@@ -77,14 +77,8 @@ R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies.
 
 - The impact of log parsing errors:
 
-![Random results](pictures/RQ4_logparsing.PNG)
-<p>Spirit dataset</p>
+![Random results](pictures/RQ4_logparsing.png)
 
------
-![Random results](pictures/RQ4_HDFS.png)
-<p>HDFS dataset</p>
-
-Full results will be available soon...
 #### RQ5: How early can the existing models detect anomalies in online detection?
 
 <figure>
