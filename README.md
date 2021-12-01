@@ -73,7 +73,7 @@ R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies.
 #### 4. RQ4: Can existing methods work with different degrees of data noise?
 - The impact of mislabelled logs on the HDFS dataset:
 
-![Random results](pictures/RQ4_mislabeled.PNG)
+![Random results](pictures/RQ4_mislabel.PNG)
 
 - The impact of log parsing errors:
 
