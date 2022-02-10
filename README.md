@@ -23,90 +23,6 @@ The required packages are listed in requirements.txt. Install:
 pip install -r requirements.txt
 ```
 
-### III. Data and Results
-BGL and HDFS datasets can be found here: [Loghub](https://zenodo.org/record/3227177).
-Our Spirit and Thunderbird datasets can be found here: [Raw data](https://figshare.com/s/4d2e5634c5b94a6e64f6).
-
-The data after log parsing can be found here (for all 4 datasets): [Parsed data](https://figshare.com/s/8e367db4d98cf39203c5)
-
-Training/Testing data and pre-trained models for each RQ can be found here: [Results](https://figshare.com/s/7c61dd5547730bce41b8)
-#### 1.  RQ1: How do the existing models perform with different training data selection strategies?
-- Chronological selection:
-
-|   Dataset   |   | DeepLog | LogAnomaly | LogRobust |  CNN  | PLELog |
-|:-----------:|---|:-------:|:----------:|:---------:|:-----:|:------:|
-|     BGL     | P |  0.270  |    0.313   |   0.994   | 0.871 |  0.702 |
-|             | R |  0.988  |    0.798   |   0.942   | 0.947 |  0.791 |
-|             | S |  0.437  |    0.551   |   0.999   | 0.970 |  0.899 |
-|             | F |  0.426  |    0.483   |   0.967   | 0.908 |  0.744 |
-|    Spirit   | P |  0.438  |    0.438   |   0.985   | 0.986 |  0.931 |
-|             | R |   1.0   |     1.0    |   0.915   |  1.0  |  0.767 |
-|             | S |  0.090  |    0.090   |   0.990   | 0.990 |  0.690 |
-|             | F |  0.609  |    0.609   |   0.949   | 0.993 |  0.841 |
-| Thunderbird | P |  0.200  |    0.229   |   0.900   | 0.889 |  0.900 |
-|             | R |   1.0   |     1.0    |    1.0    |  1.0  |   1.0  |
-|             | S |    0    |    0.156   |   0.969   | 0.969 |  0.250 |
-|             | F |  0.333  |    0.371   |   0.947   | 0.941 |  0.400 |
-
-- Random selection:
-
-![Random results](pictures/random_5rounds.PNG)
-
-R1, R2, etc. stand for round 1, round 2, etc. of random selection strategies. 
-
-#### 2. RQ2: How do the existing models perform with different data grouping methods?
-- Fixed-window grouping:
-
-![Random results](pictures/RQ2_fixed.png)
-
-- Session-window grouping:
-
-![Random results](pictures/RQ2_session.PNG)
-
-#### 3.  RQ3: How do the existing approaches perform with different class distributions?
-
-- Different class distributions on the HDFS dataset:
-
-![Random results](pictures/RQ3.png)
-
-
-#### 4. RQ4: Can existing methods work with different degrees of data noise?
-- The impact of mislabelled logs on the HDFS dataset:
-
-![Random results](pictures/RQ4a.png)
-
-- The impact of log parsing errors:
-
-![Random results](pictures/RQ4_logparsing.png)
-
-#### RQ5: How early can the existing models detect anomalies in online detection?
-
-<figure>
-<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_comparison.PNG" alt="Trulli" style="width:100%">
-<figcaption><i>The number of examined log messages before each model can detect an anomaly (100-logs
- setting)</i></figcaption>
-</figure>
-
--------------------------
-
-<figure>
-<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_200.png" alt="Trulli" style="width
-:97%">
-<figcaption><i>The number of examined log messages before each model can detect an anomaly (200-logs
- setting)</i></figcaption>
-</figure>
-
-
--------------------------
-
-<figure>
-<img src="https://anonymous.4open.science/api/repo/LogADEmpirical/file/pictures/RQ5_0.5h.png" alt="Trulli" style="width
-:97%">
-<figcaption><i>The number of examined log messages before each model can detect an anomaly (0.5-hour-logs setting)</i
-></figcaption>
-</figure>
-
-
 ### IV. Demo
 - Example of DeepLog on BGL with fixed window size of 1 hour:
 ```shell script
@@ -120,7 +36,3 @@ python main_run.py --folder=bgl/ --log_file=BGL.log --dataset_name=bgl --model_n
 ```shell script
 python main_run.py --help
 ```
-
-### V. Hyperparameters
-All hyperpameters can be found in file parameters.txt in [Results](https://figshare.com/s/7c61dd5547730bce41b8). The
- hyperparameters are fine-tuned for each dataset.
