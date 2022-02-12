@@ -40,7 +40,7 @@ python main_run.py --help
 ## Citation
 If you find the code and models useful for your research, please cite the following paper:
 ```
-@inproceedings{le2021log,
+@inproceedings{le2022log,
   title={Log-based Anomaly Detection with Deep Learning: How Far Are We?},
   author={Le, Van-Hoang and Zhang, Hongyu},
   booktitle={2022 IEEE/ACM 43rd International Conference on Software Engineering (ICSE)},
