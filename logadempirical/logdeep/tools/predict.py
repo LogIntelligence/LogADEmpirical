@@ -20,7 +20,7 @@ from logadempirical.logdeep.dataset.sample import sliding_window
 from logadempirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
 from logadempirical.logdeep.models.cnn import TextCNN
 from logadempirical.logdeep.models.autoencoder import AutoEncoder
-from logadempirical.neural_log.transformers import TransformerClassification
+from logadempirical.neural_log.transformers import NeuralLog
 
 
 def generate(output_dir, name):
@@ -243,6 +243,9 @@ class Predicter():
 
         if self.model_name == "cnn":
             model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
+        elif self.model_name == "neurallog":
+            model = NeuralLog(num_encoder_layers=2, num_heads=12, dim_model=768, dim_feedforward=2048,
+                              droput=0.1).to(self.device)
         else:
             lstm_model = robustlog
 

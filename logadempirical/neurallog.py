@@ -17,4 +17,4 @@ def run_neuralog(options):
         vocab.save_vocab(options["vocab_path"])
 
     Trainer(options).start_train()
-    Predicter(options).predict_supervised2()
+    Predicter(options).predict_supervised()
