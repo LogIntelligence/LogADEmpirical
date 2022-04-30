@@ -27,8 +27,8 @@ class Vocab(object):
             self.itos.append(event)
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
-        self.semantic_vectors = read_json(os.path.join(emb_file))
-        self.semantic_vectors["padding"] = [-1] * 300
+        # self.semantic_vectors = read_json(os.path.join(emb_file))
+        # self.semantic_vectors["padding"] = [-1] * 300
         self.model = model
         self.mapping = {}
 
