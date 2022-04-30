@@ -131,6 +131,7 @@ def fixed_window(raw_data, para):
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
     # print(label_data[:10])
     logkey_data, deltaT_data, log_template_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
+    content_data = raw_data.iloc[:, 5]
     new_data = []
     start_end_index_pair = set()
 
@@ -151,6 +152,7 @@ def fixed_window(raw_data, para):
             "Label": label_data[start_index:end_index].values,
             "EventId": logkey_data[start_index: end_index].values,
             "EventTemplate": log_template_data[start_index: end_index].values,
+            "Seq": content_data[start_index: end_index].values,
             "SessionId": n_sess
         })
         n_sess += 1

@@ -103,8 +103,10 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
             sliding = sliding_window
             window_size = float(window_size) * 60
             step_size = float(step_size) * 60
+        print(random_sample)
         if random_sample:
-            window_df = sliding(df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]],
+            print("???")
+            window_df = sliding(df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate", "Content"]],
                                        para={"window_size": window_size,
                                              "step_size": step_size})
             window_df = shuffle(window_df).reset_index(drop=True)
@@ -256,3 +258,9 @@ def process_instance(data_dir, output_dir, train_file, test_file):
 
     with open("bgl-test.pkl", mode="wb") as f:
         pickle.dump((test_x, test_y), f)
+
+
+if __name__ == '__main__':
+    process_dataset(data_dir="../../dataset/", output_dir="../../dataset/", log_file="BGL.log", dataset_name="bgl",
+                    window_type="sliding", window_size=10, step_size=10, train_size=0.8, random_sample=True,
+                    session_type="entry")

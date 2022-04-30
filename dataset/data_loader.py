@@ -10,7 +10,7 @@ import os
 from modules.data.Instance import parse_instance
 
 
-def load_fixed_windows_instances(log_file, train_ratio=0.5, window_size=20):
+def load_fixed_windows_instances(log_file, train_ratio=0.2, window_size=20):
     print("Loading", log_file)
     logs = pd.read_csv(log_file, memory_map=True)
     logs = logs.to_dict('records')
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     x_tr, x_te = load_fixed_windows_instances(
         "../../LogVectorization/logparser/benchmark/Drain_result/Spirit5M.log_structured.csv",
         train_ratio=0.8,
-        window_size=500)
+        window_size=20)
 
     # with open("hadoop/train.pkl", mode="wb") as f:
     #     pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)

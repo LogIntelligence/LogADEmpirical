@@ -26,7 +26,7 @@ from logadempirical.logdeep.tools.utils import plot_train_valid_loss
 from logadempirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
 from logadempirical.logdeep.models.autoencoder import AutoEncoder
 from logadempirical.logdeep.models.cnn import TextCNN
-from logadempirical.neural_log.transformers import TransformerClassification
+from logadempirical.neural_log.transformers import NeuralLog
 
 
 class Trainer():
@@ -80,7 +80,7 @@ class Trainer():
         self.random_sample = options["random_sample"]
 
         # detection model: predict the next log or classify normal/abnormal
-        if self.model_name == "cnn" or self.model_name == "logrobust" or self.model_name == "autoencoder":
+        if self.model_name in ["cnn", "logrobust", "autoencoder", "neurallog"]:
             self.is_predict_logkey = False
         else:
             self.is_predict_logkey = True
@@ -109,8 +109,8 @@ class Trainer():
                                                       )
 
             train_logs, train_labels = shuffle(train_logs, train_labels)
-            train_logs = train_logs[:200000]
-            train_labels = train_labels[:200000]
+            # train_logs = train_logs[:200000]
+            # train_labels = train_labels[:200000]
             n_val = int(len(train_logs) * self.valid_ratio)
             val_logs, val_labels = train_logs[-n_val:], train_labels[-n_val:]
             del data
@@ -150,6 +150,9 @@ class Trainer():
         elif self.model_name == "autoencoder":
             self.model = AutoEncoder(self.hidden_size, self.num_layers, embedding_dim=self.embedding_dim).to(
                 self.device)
+        elif self.model_name == "neurallog":
+            self.model = NeuralLog(num_encoder_layers=2, num_heads=12, dim_model=768, dim_feedforward=2048,
+                                   droput=0.1).to(self.device)
         else:
             if self.model_name == "deeplog":
                 lstm_model = deeplog
@@ -436,4 +439,4 @@ class Trainer():
             self.save_log()
         plot_train_valid_loss(self.model_dir)
         if self.model_name == "autoencoder":
-            return self.train_autoencoder2()#self.model, val_loss / n_val_epoch
+            return self.train_autoencoder2()  # self.model, val_loss / n_val_epoch

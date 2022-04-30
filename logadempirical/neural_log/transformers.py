@@ -169,7 +169,7 @@ class Transformer(nn.Module):
         return self.encoder(src, device)
 
 
-class TransformerClassification(nn.Module):
+class NeuralLog(nn.Module):
     def __init__(self,
                  num_encoder_layers: int = 6,
                  num_decoder_layers: int = 6,
@@ -178,7 +178,7 @@ class TransformerClassification(nn.Module):
                  dim_feedforward: int = 2048,
                  droput: float = 0.1,
                  activation: nn.Module = nn.ReLU()):
-        super(TransformerClassification, self).__init__()
+        super(NeuralLog, self).__init__()
         self.num_heads = num_heads
         self.transformers = Transformer(num_encoder_layers=num_encoder_layers,
                                         num_decoder_layers=num_decoder_layers,
@@ -196,7 +196,7 @@ class TransformerClassification(nn.Module):
 
 
     def forward(self, features: list, device: str ='cuda:0'):
-        inp = features[0]
+        inp = features[2]
         # print(inp.shape)
         x = self.transformers(inp, device)
         x = torch.sum(x, dim = 1)
@@ -209,6 +209,6 @@ class TransformerClassification(nn.Module):
 
 if __name__ == '__main__':
     src = torch.rand(64, 100, 768)
-    model = TransformerClassification(dim_model=768)
+    model = NeuralLog(dim_model=768)
     out, _ = model([src])
     print(out.shape)

@@ -7,6 +7,7 @@ from tqdm import tqdm
 import os
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+from logadempirical.logdeep.dataset import bert_encoder
 
 
 def read_json(filename):
@@ -72,7 +73,7 @@ def load_features(data_path, only_normal=True, min_len=0):
             else:
                 label = seq['Label']
             if label == 0:
-                logs.append((seq['EventId'], label))
+                logs.append((seq['EventId'], label, seq['Seq']))
     else:
         logs = []
         no_abnormal = 0
@@ -87,15 +88,19 @@ def load_features(data_path, only_normal=True, min_len=0):
                 label = seq['Label']
                 if label > 0:
                     no_abnormal += 1
-            logs.append((seq['EventId'], label))
+            logs.append((seq['EventId'], label, seq['Seq']))
         print("Number of abnormal sessions:", no_abnormal)
     return logs
 
 
 def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="dataset/", is_predict_logkey=True,
                    e_name="embeddings.json", semantics=True, sample_ratio=1):
-
-    event2semantic_vec = read_json(os.path.join(data_dir, e_name))
+    if e_name is "neural":
+        event2semantic_vec = {}
+        is_bert = True
+    else:
+        event2semantic_vec = read_json(os.path.join(data_dir, e_name))
+        is_bert = False
     result_logs = []
     labels = []
 
@@ -103,7 +108,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
     num_classes = len(vocab)
 
     duplicate_seq = {}
-    for idx, (orig_line, lbls) in enumerate(data_iter):
+    for idx, (orig_line, lbls, contents) in enumerate(data_iter):
         orig_line = list(orig_line)
         # print(len(orig_line))
         # print(orig_line[:window_size])
@@ -145,11 +150,18 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
             sequential_pattern = line[i:i + window_size]
             semantic_pattern = []
             if semantics:
-                for event in orig_line[i:i + window_size]:
+                if is_bert:
+                    seq_logs = contents[i: i + window_size]
+                else:
+                    seq_logs = orig_line[i: i + window_size]
+                for event in seq_logs:
                     if event == "padding":
                         semantic_pattern.append([-1] * 300)
                     else:
-                        semantic_pattern.append(event2semantic_vec[event])
+                        if is_bert:
+                            semantic_pattern.append(bert_encoder(event, event2semantic_vec))
+                        else:
+                            semantic_pattern.append(event2semantic_vec[event])
 
             quantitative_pattern = [0] * num_classes
             log_counter = Counter(sequential_pattern)
@@ -158,7 +170,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                 try:
                     quantitative_pattern[key] = log_counter[key]
                 except:
-                    pass # ignore unseen events or padding key
+                    pass  # ignore unseen events or padding key
 
             sequential_pattern = np.array(sequential_pattern)
             quantitative_pattern = np.array(quantitative_pattern)[:, np.newaxis]
