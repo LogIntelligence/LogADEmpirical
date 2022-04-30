@@ -8,6 +8,7 @@ from logadempirical.logrobust import run_logrobust
 from logadempirical.cnn import run_cnn
 from logadempirical.bert import run_logbert
 from logadempirical.plelog import run_plelog
+from logadempirical.neurallog import run_neuralog
 from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
 
 import sys
@@ -202,6 +203,8 @@ def main():
         run_plelog(options)
     elif args.model_name == "baseline":
         pass
+    elif args.model_name == "neurallog":
+        run_ne
     else:
         raise NotImplementedError(f"Model {args.model_name} is not defined")
 
