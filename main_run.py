@@ -204,7 +204,7 @@ def main():
     elif args.model_name == "baseline":
         pass
     elif args.model_name == "neurallog":
-        run_ne
+        run_neuralog(options)
     else:
         raise NotImplementedError(f"Model {args.model_name} is not defined")
 
