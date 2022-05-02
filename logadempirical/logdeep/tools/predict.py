@@ -262,7 +262,8 @@ class Predicter():
         model.eval()
         print('model_path: {}'.format(self.model_path))
 
-        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl', is_neural=self.embeddings =='neural')
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl',
+                                                            is_neural=self.embeddings == 'neural')
         print(len(test_normal_loader), len(test_abnormal_loader))
         start_time = time.time()
         total_normal, total_abnormal = 0, 0
@@ -270,7 +271,8 @@ class Predicter():
         TP = 0
         with torch.no_grad():
             for line in tqdm(test_normal_loader.keys()):
-                logs, labels = sliding_window([(line, 0, list(line))], vocab, window_size=self.history_size, is_train=False,
+                logs, labels = sliding_window([(line, 0, list(line))], vocab, window_size=self.history_size,
+                                              is_train=False,
                                               data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                               e_name=self.embeddings)
                 dataset = log_dataset(logs=logs, labels=labels)
@@ -292,7 +294,8 @@ class Predicter():
         lead_time = []
         with torch.no_grad():
             for line in tqdm(test_abnormal_loader.keys()):
-                logs, labels = sliding_window([(line, 1, list(line))], vocab, window_size=self.history_size, is_train=False,
+                logs, labels = sliding_window([(line, 1, list(line))], vocab, window_size=self.history_size,
+                                              is_train=False,
                                               data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                               e_name=self.embeddings)
                 n_log = len(logs)
@@ -347,9 +350,10 @@ class Predicter():
         model.eval()
         print('model_path: {}'.format(self.model_path))
 
-        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl',
+                                                            is_neural=self.embeddings == 'neural')
         start_time = time.time()
-        data = [(k, v) for k, v in test_normal_loader.items()]
+        data = [(k, v, list(k)) for k, v in test_normal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
                                       data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                       e_name=self.embeddings)
@@ -373,7 +377,7 @@ class Predicter():
             if normal_results[i] == 1:
                 FP += data[i][1]
             total_normal += data[i][1]
-        data = [(k, v) for k, v in test_abnormal_loader.items()]
+        data = [(k, v, k) for k, v in test_abnormal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
                                       data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                       e_name=self.embeddings)
@@ -396,7 +400,7 @@ class Predicter():
         lead_time = []
         total_abnormal, TP = 0, 0
         for i in range(len(abnormal_results)):
-            print(len(abnormal_results[i]))
+            # print(len(abnormal_results[i]))
             if max(abnormal_results[i]) == 1:
                 TP += data[i][1]
                 lead_time.append(abnormal_results[i].index(1) + self.history_size + 1)
