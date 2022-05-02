@@ -267,7 +267,7 @@ class Predicter():
         TP = 0
         with torch.no_grad():
             for line in tqdm(test_normal_loader.keys()):
-                logs, labels = sliding_window([(line, 0)], vocab, window_size=self.history_size, is_train=False,
+                logs, labels = sliding_window([(line, 0, line)], vocab, window_size=self.history_size, is_train=False,
                                               data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                               e_name=self.embeddings)
                 dataset = log_dataset(logs=logs, labels=labels)
@@ -289,7 +289,7 @@ class Predicter():
         lead_time = []
         with torch.no_grad():
             for line in tqdm(test_abnormal_loader.keys()):
-                logs, labels = sliding_window([(line, 1)], vocab, window_size=self.history_size, is_train=False,
+                logs, labels = sliding_window([(line, 1, line)], vocab, window_size=self.history_size, is_train=False,
                                               data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                               e_name=self.embeddings)
                 n_log = len(logs)
