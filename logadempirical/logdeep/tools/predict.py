@@ -268,7 +268,8 @@ class Predicter():
         with torch.no_grad():
             for line in tqdm(test_normal_loader.keys()):
                 logs, labels = sliding_window([(line, 0)], vocab, window_size=self.history_size, is_train=False,
-                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
+                                              e_name=self.embeddings)
                 dataset = log_dataset(logs=logs, labels=labels)
                 data_loader = DataLoader(dataset, batch_size=4096, shuffle=True, pin_memory=True)
                 for _, (log, label) in enumerate(data_loader):
@@ -289,7 +290,8 @@ class Predicter():
         with torch.no_grad():
             for line in tqdm(test_abnormal_loader.keys()):
                 logs, labels = sliding_window([(line, 1)], vocab, window_size=self.history_size, is_train=False,
-                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False)
+                                              data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
+                                              e_name=self.embeddings)
                 n_log = len(logs)
                 dataset = log_dataset(logs=logs, labels=labels)
                 data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)

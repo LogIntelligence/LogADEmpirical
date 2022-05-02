@@ -73,7 +73,7 @@ def load_features(data_path, only_normal=True, min_len=0):
             else:
                 label = seq['Label']
             if label == 0:
-                logs.append((seq['EventId'], label, seq['Seq']))
+                logs.append((seq['EventId'], label, seq['Seq'].tolist()))
     else:
         logs = []
         no_abnormal = 0
@@ -88,14 +88,14 @@ def load_features(data_path, only_normal=True, min_len=0):
                 label = seq['Label']
                 if label > 0:
                     no_abnormal += 1
-            logs.append((seq['EventId'], label, seq['Seq']))
+            logs.append((seq['EventId'], label, seq['Seq'].tolist()))
         print("Number of abnormal sessions:", no_abnormal)
     return logs
 
 
 def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="dataset/", is_predict_logkey=True,
                    e_name="embeddings.json", semantics=True, sample_ratio=1):
-    if e_name is "neural":
+    if e_name == "neural":
         event2semantic_vec = {}
         is_bert = True
     else:
@@ -121,6 +121,8 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
             seq_len = max(window_size, len(line))
         line = [vocab.pad_index] * (seq_len - len(line)) + line
         orig_line = ["padding"] * (seq_len - len(orig_line)) + orig_line
+        # print(contents)
+        contents = ["padding"] * (seq_len - len(contents)) + contents
         if not is_train:
             duplicate_seq = {}
         for i in range(len(line) - window_size if is_predict_logkey else len(line) - window_size + 1):
@@ -134,7 +136,10 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                 else:
                     label = lbls
 
-            seq = line[i: i + window_size]
+            if is_bert:
+                seq = contents[i: i + window_size]
+            else:
+                seq = line[i: i + window_size]
             if is_predict_logkey:
                 seq.append(label)
             seq = list(map(lambda k: str(k), seq))
