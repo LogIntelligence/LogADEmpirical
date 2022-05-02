@@ -25,7 +25,7 @@ def bert_encoder(s, E):
     s = clean(s)
     if s in E.keys():
         return E[s]
-    inputs = bert_tokenizer(s, return_tensors='pt', max_length=512)
+    inputs = bert_tokenizer(s, return_tensors='pt', max_length=512, truncation=True)
     outputs = bert_model(**inputs)
     v = torch.mean(outputs.last_hidden_state, dim=1)
     E[s] = v[0].detach().numpy()
