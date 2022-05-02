@@ -123,8 +123,8 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
         orig_line = ["padding"] * (seq_len - len(orig_line)) + orig_line
         # print(contents)
         contents = ["padding"] * (seq_len - len(contents)) + contents
-        if not is_train:
-            duplicate_seq = {}
+        # if not is_train:
+        #     duplicate_seq = {}
         for i in range(len(line) - window_size if is_predict_logkey else len(line) - window_size + 1):
             if is_predict_logkey:
                 if i + window_size >= len(line) and is_predict_logkey:
@@ -144,15 +144,15 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                 seq.append(label)
             seq = list(map(lambda k: str(k), seq))
             seq = " ".join(seq)
-            if seq in duplicate_seq.keys():
-                if not is_predict_logkey:
-                    pos = duplicate_seq[seq]
-                    if labels[pos] != label:
-                        labels[pos] = 0
-                continue
+            # if seq in duplicate_seq.keys():
+            #     if not is_predict_logkey:
+            #         pos = duplicate_seq[seq]
+            #         if labels[pos] != label:
+            #             labels[pos] = 0
+            #     continue
 
-            duplicate_seq[seq] = len(labels)
-            sequential_pattern = line[i:i + window_size]
+            # duplicate_seq[seq] = len(labels)
+            sequential_pattern = []#line[i:i + window_size]
             semantic_pattern = []
             if semantics:
                 if is_bert:
@@ -168,14 +168,14 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                         else:
                             semantic_pattern.append(event2semantic_vec[event])
 
-            quantitative_pattern = [0] * num_classes
-            log_counter = Counter(sequential_pattern)
-
-            for key in log_counter:
-                try:
-                    quantitative_pattern[key] = log_counter[key]
-                except:
-                    pass  # ignore unseen events or padding key
+            quantitative_pattern = [0]# * num_classes
+            # log_counter = Counter(sequential_pattern)
+            #
+            # for key in log_counter:
+            #     try:
+            #         quantitative_pattern[key] = log_counter[key]
+            #     except:
+            #         pass  # ignore unseen events or padding key
 
             sequential_pattern = np.array(sequential_pattern)
             quantitative_pattern = np.array(quantitative_pattern)[:, np.newaxis]
