@@ -337,6 +337,9 @@ class Predicter():
 
         if self.model_name == "cnn":
             model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
+        elif self.model_name == "neurallog":
+            model = NeuralLog(num_encoder_layers=2, num_heads=12, dim_model=768, dim_feedforward=2048,
+                              droput=0.1).to(self.device)
         else:
             lstm_model = robustlog
 
@@ -377,7 +380,7 @@ class Predicter():
             if normal_results[i] == 1:
                 FP += data[i][1]
             total_normal += data[i][1]
-        data = [(k, v, k) for k, v in test_abnormal_loader.items()]
+        data = [(k, v, list(k)) for k, v in test_abnormal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
                                       data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
                                       e_name=self.embeddings)
