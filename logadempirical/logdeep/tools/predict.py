@@ -23,7 +23,7 @@ from logadempirical.logdeep.models.autoencoder import AutoEncoder
 from logadempirical.neural_log.transformers import NeuralLog
 
 
-def generate(output_dir, name):
+def generate(output_dir, name, is_neural):
     print("Loading", output_dir + name)
     with open(output_dir + name, 'rb') as f:
         data_iter = pickle.load(f)
@@ -34,7 +34,10 @@ def generate(output_dir, name):
             label = max(seq['Label'].tolist())
         else:
             label = seq['Label']
-        key = tuple(seq['EventId'])
+        if is_neural:
+            key = tuple(seq['Seq'])
+        else:
+            key = tuple(seq['EventId'])
         if label == 0:
             if key not in normal_iter:
                 normal_iter[key] = 1
@@ -259,7 +262,7 @@ class Predicter():
         model.eval()
         print('model_path: {}'.format(self.model_path))
 
-        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl')
+        test_normal_loader, test_abnormal_loader = generate(self.output_dir, 'test.pkl', is_neural=self.embeddings =='neural')
         print(len(test_normal_loader), len(test_abnormal_loader))
         start_time = time.time()
         total_normal, total_abnormal = 0, 0
