@@ -115,11 +115,11 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
             test_window = window_df.iloc[n_train:, :].to_dict("records")
         else:
             train_window = sliding(
-                df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]].iloc[:n_train, :],
+                df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate", "Content"]].iloc[:n_train, :],
                 para={"window_size": window_size,
                       "step_size": step_size}).to_dict("records")
             test_window = sliding(
-                df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate"]].iloc[n_train:, :].reset_index(
+                df[["timestamp", "Label", "EventId", "deltaT", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(
                     drop=True),
                 para={"window_size": window_size, "step_size": step_size}).to_dict("records")
 
