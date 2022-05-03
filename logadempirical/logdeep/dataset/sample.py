@@ -73,7 +73,7 @@ def load_features(data_path, only_normal=True, min_len=0):
             else:
                 label = seq['Label']
             if label == 0:
-                logs.append((seq['EventId'], label, seq['Seq'].tolist()))
+                logs.append((seq['EventId'], label, seq['Seq']))
     else:
         logs = []
         no_abnormal = 0
@@ -88,7 +88,7 @@ def load_features(data_path, only_normal=True, min_len=0):
                 label = seq['Label']
                 if label > 0:
                     no_abnormal += 1
-            logs.append((seq['EventId'], label, seq['Seq'].tolist()))
+            logs.append((seq['EventId'], label, seq['Seq']))
         print("Number of abnormal sessions:", no_abnormal)
     return logs
 

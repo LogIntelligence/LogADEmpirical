@@ -133,7 +133,7 @@ def process_dataset(data_dir, output_dir, log_file, dataset_name, window_type, w
             for _, row in tqdm(enumerate(blk_df.to_dict("records"))):
                 label_dict[row["BlockId"]] = 1 if row["Label"] == "Anomaly" else 0
 
-            window_df = session_window(df, id_regex, label_dict)
+            window_df = session_window(df, id_regex, label_dict, window_size=int(window_size))
             # window_df = shuffle(window_df).reset_index(drop=True)
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]

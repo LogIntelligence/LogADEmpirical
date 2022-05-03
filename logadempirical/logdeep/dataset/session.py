@@ -6,8 +6,9 @@ from collections import defaultdict
 from tqdm import tqdm
 import numpy as np
 
-def session_window(raw_data, id_regex, label_dict):
-    data_dict = defaultdict(list)
+
+def session_window(raw_data, id_regex, label_dict, window_size=20):
+    data_dict = {}  # defaultdict(list)
     raw_data = raw_data.to_dict("records")
 
     for idx, row in tqdm(enumerate(raw_data)):
@@ -15,14 +16,21 @@ def session_window(raw_data, id_regex, label_dict):
         blkId_set = set(blkId_list)
         for blk_Id in blkId_set:
             if blk_Id not in data_dict.keys():
-                data_dict[blk_Id] = [row["EventId"]]
+                data_dict[blk_Id] = {}
+                data_dict[blk_Id]['EventId'] = [row["EventId"]]
+                data_dict[blk_Id]['Seq'] = [row['Content']]
             else:
-                data_dict[blk_Id].append(row["EventId"])
+                data_dict[blk_Id]['EventId'].append(row["EventId"])
+                data_dict[blk_Id]['Seq'].append(row['Content'])
 
     results = []
 
     for k, v in data_dict.items():
-        results.append({"SessionId": k, "EventId": v, "Label": label_dict[k]})
+        if len(v['Seq']) > window_size:
+            # print(window_size)
+            v['Seq'] = v['Seq'][-window_size:]
+            v['EventId'] = v['EventId'][-window_size:]
+        results.append({"SessionId": k, "EventId": v['EventId'], "Seq": v['Seq'], "Label": label_dict[k]})
     results = shuffle(results)
     return results
 
@@ -49,7 +57,8 @@ def session_window_bgl(raw_data):
     results = shuffle(results)
     return results
 
-#see https://pinjiahe.github.io/papers/ISSRE16.pdf
+
+# see https://pinjiahe.github.io/papers/ISSRE16.pdf
 def sliding_window(raw_data, para):
     """
     split logs into sliding windows/session
@@ -161,6 +170,7 @@ def fixed_window(raw_data, para):
     print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
     return pd.DataFrame(new_data)
 
+
 def _custom_resampler(array_like):
     return list(array_like)
 
@@ -171,5 +181,3 @@ def deeplog_file_generator(filename, df, features):
             for val in zip(*row[features]):
                 f.write(','.join([str(v) for v in val]) + ' ')
             f.write('\n')
-
-
