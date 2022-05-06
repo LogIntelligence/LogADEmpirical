@@ -338,8 +338,8 @@ class Predicter():
         if self.model_name == "cnn":
             model = TextCNN(self.dim_model, self.seq_len, 128).to(self.device)
         elif self.model_name == "neurallog":
-            model = NeuralLog(num_encoder_layers=2, num_heads=12, dim_model=768, dim_feedforward=2048,
-                              droput=0.1).to(self.device)
+            model = NeuralLog(num_encoder_layers=1, num_heads=12, dim_model=768, dim_feedforward=2048,
+                              droput=0.2).to(self.device)
         else:
             lstm_model = robustlog
 

@@ -152,8 +152,8 @@ class Trainer():
             self.model = AutoEncoder(self.hidden_size, self.num_layers, embedding_dim=self.embedding_dim).to(
                 self.device)
         elif self.model_name == "neurallog":
-            self.model = NeuralLog(num_encoder_layers=2, num_heads=12, dim_model=768, dim_feedforward=2048,
-                                   droput=0.1).to(self.device)
+            self.model = NeuralLog(num_encoder_layers=1, num_heads=12, dim_model=768, dim_feedforward=2048,
+                                   droput=0.2).to(self.device)
         else:
             if self.model_name == "deeplog":
                 lstm_model = deeplog
