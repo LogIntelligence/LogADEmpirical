@@ -105,7 +105,8 @@ class Trainer():
                                                       is_predict_logkey=self.is_predict_logkey,
                                                       semantics=self.semantics,
                                                       sample_ratio=self.train_ratio,
-                                                      e_name=self.embeddings
+                                                      e_name=self.embeddings,
+                                                      in_size=self.input_size
                                                       )
 
             train_logs, train_labels = shuffle(train_logs, train_labels)

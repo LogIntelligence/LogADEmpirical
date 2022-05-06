@@ -359,7 +359,7 @@ class Predicter():
         data = [(k, v, list(k)) for k, v in test_normal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
                                       data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
-                                      e_name=self.embeddings)
+                                      e_name=self.embeddings, in_size=self.input_size)
         dataset = log_dataset(logs=logs, labels=labels)
         data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
         normal_results = [0] * len(data)
@@ -383,7 +383,7 @@ class Predicter():
         data = [(k, v, list(k)) for k, v in test_abnormal_loader.items()]
         logs, labels = sliding_window(data, vocab, window_size=self.history_size, is_train=False,
                                       data_dir=self.data_dir, semantics=self.semantics, is_predict_logkey=False,
-                                      e_name=self.embeddings)
+                                      e_name=self.embeddings, in_size=self.input_size)
         dataset = log_dataset(logs=logs, labels=labels)
         data_loader = DataLoader(dataset, batch_size=4096, shuffle=False, pin_memory=True)
         abnormal_results = [[]] * len(data)

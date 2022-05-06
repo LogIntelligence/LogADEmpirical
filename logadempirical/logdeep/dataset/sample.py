@@ -73,7 +73,10 @@ def load_features(data_path, only_normal=True, min_len=0):
             else:
                 label = seq['Label']
             if label == 0:
-                logs.append((seq['EventId'], label, seq['Seq']))
+                try:
+                    logs.append((seq['EventId'], label, seq['Seq'].tolist()))
+                except:
+                    logs.append((seq['EventId'], label, seq['Seq']))
     else:
         logs = []
         no_abnormal = 0
@@ -88,13 +91,16 @@ def load_features(data_path, only_normal=True, min_len=0):
                 label = seq['Label']
                 if label > 0:
                     no_abnormal += 1
-            logs.append((seq['EventId'], label, seq['Seq']))
+            try:
+                logs.append((seq['EventId'], label, seq['Seq'].tolist()))
+            except:
+                logs.append((seq['EventId'], label, seq['Seq']))
         print("Number of abnormal sessions:", no_abnormal)
     return logs
 
 
 def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="dataset/", is_predict_logkey=True,
-                   e_name="embeddings.json", semantics=True, sample_ratio=1):
+                   e_name="embeddings.json", semantics=True, sample_ratio=1, in_size=768):
     if e_name == "neural":
         event2semantic_vec = {}
         is_bert = True
@@ -161,7 +167,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                     seq_logs = orig_line[i: i + window_size]
                 for event in seq_logs:
                     if event == "padding":
-                        semantic_pattern.append([-1] * 300)
+                        semantic_pattern.append([-1] * in_size)
                     else:
                         if is_bert:
                             semantic_pattern.append(bert_encoder(event, event2semantic_vec))
