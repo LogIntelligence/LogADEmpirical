@@ -49,7 +49,7 @@ docker build -t lad .
 #### Run
 
 ```
-docker run -it lad
+docker run --gpus all -it lad
 ```
 
 ## Citation
