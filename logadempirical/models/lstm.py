@@ -32,7 +32,9 @@ class DeepLog(nn.Module):
         self.fc = nn.Linear(hidden_size, vocab_size)
         self.criterion = criterion
 
-    def forward(self, x, y=None, device='cpu'):
+    def forward(self, batch, device='cpu'):
+        x = batch['sequential']
+        y = batch['label']
         x = self.embedding(x.to(device))
         out, _ = self.lstm(x)
         logits = self.fc(out[:, -1, :])
@@ -99,7 +101,9 @@ class LogRobust(nn.Module):
         attn_output = torch.sum(state * alphas_reshape, 1)
         return attn_output
 
-    def forward(self, x, y=None, device='cpu'):
+    def forward(self, batch, device='cpu'):
+        x = batch['semantic']
+        y = batch['label']
         inp = x.to(device)
         sequence_length = inp.size(1)
         out, _ = self.lstm(inp)
@@ -118,8 +122,8 @@ class LogRobust(nn.Module):
     def load(self, path):
         self.load_state_dict(torch.load(path))
 
-    def predict(self, src, device="cpu"):
-        return self.forward(src, device=device).probabilities
+    def predict(self, batch, device="cpu"):
+        return self.forward(batch, device=device).probabilities
 
     def predict_class(self, src, device="cpu"):
         return torch.argmax(self.forward(src, device=device).probabilities, dim=-1)
@@ -160,7 +164,10 @@ class LogAnomaly(nn.Module):
         self.fc = nn.Linear(2 * hidden_size, self.vocab_size)
         self.criterion = criterion
 
-    def forward(self, x_sem, x_quant, y=None, device='cpu'):
+    def forward(self, batch, device='cpu'):
+        x_sem = batch['semantic']
+        x_quant = batch['quantitative']
+        y = batch['label']
         out0, _ = self.lstm0(x_sem.to(device))
         out1, _ = self.lstm1(x_quant.to(device))
 
@@ -179,11 +186,11 @@ class LogAnomaly(nn.Module):
     def load(self, path):
         self.load_state_dict(torch.load(path))
 
-    def predict(self, x_sem, x_quant, device="cpu"):
-        return self.forward(x_sem, x_quant, device=device).probabilities
+    def predict(self, batch, device="cpu"):
+        return self.forward(batch, device=device).probabilities
 
-    def predict_class(self, x_sem, x_quant, top_k=1, device="cpu"):
-        return torch.topk(self.forward(x_sem, x_quant, device=device).probabilities, k=top_k, dim=-1)
+    def predict_class(self, batch, top_k=1, device="cpu"):
+        return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=-1)
 
 
 if __name__ == '__main__':

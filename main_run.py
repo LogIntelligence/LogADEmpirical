@@ -3,17 +3,7 @@ import pickle
 
 import numpy as np
 import torch
-from torch.utils.data import random_split, DataLoader
-
-# from logadempirical.logdeep.tools.utils import seed_everything, save_parameters
-# from logadempirical.deeplog import run_deeplog
-# from logadempirical.loganomaly import run_loganomaly
-# from logadempirical.logrobust import run_logrobust
-# from logadempirical.cnn import run_cnn
-# from logadempirical.bert import run_logbert
-# from logadempirical.plelog import run_plelog
-# from logadempirical.neurallog import run_neuralog
-from sklearn.utils import shuffle
+from torch.utils.data import random_split
 
 from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
@@ -21,6 +11,9 @@ from logadempirical.data.feature_extraction import load_features, sliding_window
 from logadempirical.data.dataset import LogDataset, data_collate
 from logadempirical.helpers import arg_parser, get_loggers
 from logadempirical.models import get_model, ModelConfig
+from logadempirical.trainer import Trainer
+from transformers import get_scheduler
+from torch.utils.data import DataLoader
 
 
 def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
@@ -87,7 +80,7 @@ def build_model(args, vocab_size):
     return model
 
 
-def train(args, train_path, vocab, is_unsupervised=False):
+def train(args, train_path, vocab, model, is_unsupervised=False):
     print("Loading train dataset\n")
     data = load_features(train_path, is_unsupervised)
     sequentials, quantitatives, semantics, labels = sliding_window(
@@ -106,9 +99,23 @@ def train(args, train_path, vocab, is_unsupervised=False):
     train_dataset, valid_dataset = random_split(dataset, [len(dataset) - n_valid, n_valid])
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
-    print(train_dataset[0]['sequential'].shape)
-    print(train_dataset[0]['quantitative'].shape)
-    print(train_dataset[0]['semantic'].shape)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), eps=args.epsilon,
+                                 weight_decay=args.weight_decay)
+    trainer = Trainer(
+        model,
+        train_dataset=train_dataset,
+        valid_dataset=valid_dataset,
+        is_train=True,
+        optimizer=optimizer,
+        no_epochs=args.max_epoch,
+        batch_size=args.batch_size,
+        scheduler_type=args.scheduler,
+        warmup_rate=args.warmup_rate,
+        accumulation_step=args.accumulation_step,
+        logger=logger
+    )
+
+    trainer.train(device=args.device, save_dir=args.output_dir, model_name=args.model_name)
 
 
 if __name__ == "__main__":
@@ -134,7 +141,7 @@ if __name__ == "__main__":
     log_vocab = build_vocab(vocab_path, args.data_dir, train_path, args.embeddings, is_unsupervised=is_unsupervised)
     model = build_model(args, vocab_size=len(log_vocab))
     print(model)
-    train(args, train_path, log_vocab, is_unsupervised=is_unsupervised)
+    train(args, train_path, log_vocab, model, is_unsupervised=is_unsupervised)
 
     # options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
     # options["train_vocab"] = options["output_dir"] + "train.pkl"

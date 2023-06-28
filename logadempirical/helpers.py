@@ -14,7 +14,7 @@ def arg_parser():
                                                                               "NeuralLog", "CNN", "PLELog"])
     parser.add_argument("--dataset_name", help="which dataset to use",
                         choices=["HDFS", "BGL", "Thunderbird", "Spirit", "Hadoop"])
-    parser.add_argument("--device", help="hardware device", default="cuda")
+    parser.add_argument("--device", help="hardware device", default="cpu")
     parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
     parser.add_argument("--output_dir", default="./experimental_results/RQ1/random/", metavar="DIR",
                         help="output directory")
@@ -40,17 +40,18 @@ def arg_parser():
     parser.add_argument("--max_epoch", default=200, type=int, help="epochs")
     parser.add_argument("--n_epochs_stop", default=10, type=int,
                         help="training stops after n epochs without improvement")
-    parser.add_argument("--n_warm_up_epoch", default=10, type=int, help="save model parameters after n warm-up epoch")
+    parser.add_argument("--warmup_rate", default=0.1, type=float, help="warmup rate for learning rate scheduler")
     parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--lr", default=0.01, type=float, help="learning rate")
+    parser.add_argument("--scheduler", default="linear", help="learning rate scheduler",
+                        choices=["linear", "cosine", "polynomial", "constant"])
 
-    parser.add_argument("--num_workers", default=5, type=int)
-    parser.add_argument("--adam_beta1", default=0.9, type=float)
-    parser.add_argument("--adam_beta2", default=0.999, type=float)
-    parser.add_argument("--adam_weight_decay", default=0.00, type=float)
     parser.add_argument("--accumulation_step", default=1, type=int, help="let optimizer steps after several batches")
     parser.add_argument("--optimizer", default="adam")
-    parser.add_argument("--lr_decay_ratio", default=0.1, type=float)
+    parser.add_argument("--weight_decay", default=0.1, type=float)
+    parser.add_argument("--beta1", default=0.9, type=float)
+    parser.add_argument("--beta2", default=0.999, type=float)
+    parser.add_argument("--epsilon", default=1e-8, type=float)
 
     # feature parameters
     parser.add_argument("--sequential", default=False, help="sequences of logkeys", action='store_true')

@@ -97,8 +97,6 @@ def sliding_window(data: List[Tuple[List[str], int]],
             except KeyError:
                 pass
 
-    logger.info(f"Number of sessions: {num_sessions}")
-
     sequentials, quantitatives, semantics = None, None, None
     if sequential:
         sequentials = [seq['sequential'] for seq in log_sequences]
@@ -107,4 +105,9 @@ def sliding_window(data: List[Tuple[List[str], int]],
     if semantic:
         semantics = [seq['semantic'] for seq in log_sequences]
     labels = [seq['label'] for seq in log_sequences]
+
+    logger.info(f"Number of sequences: {len(labels)}")
+    logger.info(f"Number of normal sequence: {len(labels) - sum(labels)}")
+    logger.info(f"Number of abnormal sequence: {sum(labels)}")
+
     return sequentials, quantitatives, semantics, labels

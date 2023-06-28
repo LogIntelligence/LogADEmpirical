@@ -18,23 +18,15 @@ class LogDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        label = self.labels[idx]
-        sequential = None
-        quantitative = None
-        semantic = None
+        item = {'label': self.labels[idx]}
         if self.sequentials is not None:
-            sequential = self.sequentials[idx]
+            item['sequential'] = torch.from_numpy(np.array(self.sequentials[idx]))
         if self.quantitatives is not None:
-            quantitative = self.quantitatives[idx]
+            item['quantitative'] = torch.from_numpy(np.array(self.quantitatives[idx]))
         if self.semantics is not None:
-            semantic = self.semantics[idx]
+            item['semantic'] = torch.from_numpy(np.array(self.semantics[idx]))
 
-        return {
-            'label': label,
-            'sequential': torch.from_numpy(np.array(sequential)) if sequential is not None else None,
-            'quantitative': torch.from_numpy(np.array(quantitative)) if quantitative is not None else None,
-            'semantic': torch.from_numpy(np.array(semantic)) if semantic is not None else None,
-        }
+        return item
 
 
 def data_collate(batch, feature_name='semantic', padding_side="right"):

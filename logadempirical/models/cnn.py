@@ -29,7 +29,9 @@ class TextCNN(nn.Module):
         self.fc = nn.Linear(len(self.kernel_size_list) * out_channels, n_class)
         self.criteria = criterion
 
-    def forward(self, x, y=None, device='cpu'):
+    def forward(self, batch, device='cpu'):
+        x = batch['semantic']
+        y = batch['label']
         x = torch.unsqueeze(x.to(device), 1)
         batch_size = x.size(0)
         x = [conv(x) for conv in self.convs]
