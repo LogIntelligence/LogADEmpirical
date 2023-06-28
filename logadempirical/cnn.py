@@ -1,11 +1,10 @@
 import os
 
-from logadempirical.logdeep.models.lstm import  deeplog
+from logadempirical.logdeep.models.lstm import deeplog
 from logadempirical.logdeep.tools.predict import Predicter
 from logadempirical.logdeep.tools.train import Trainer
 from logadempirical.logdeep.dataset.vocab import Vocab
 import pickle
-
 
 
 def run_cnn(options):

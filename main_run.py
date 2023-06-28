@@ -1,213 +1,212 @@
-from argparse import ArgumentParser
 import os
+import pickle
 
-from logadempirical.logdeep.tools.utils import seed_everything, save_parameters
-from logadempirical.deeplog import run_deeplog
-from logadempirical.loganomaly import run_loganomaly
-from logadempirical.logrobust import run_logrobust
-from logadempirical.cnn import run_cnn
-from logadempirical.bert import run_logbert
-from logadempirical.plelog import run_plelog
-from logadempirical.neurallog import run_neuralog
-from logadempirical.dataset import process_dataset, parse_log, sample_raw_data, process_instance
+import numpy as np
+import torch
+from torch.utils.data import random_split, DataLoader
 
-import sys
-import time
+# from logadempirical.logdeep.tools.utils import seed_everything, save_parameters
+# from logadempirical.deeplog import run_deeplog
+# from logadempirical.loganomaly import run_loganomaly
+# from logadempirical.logrobust import run_logrobust
+# from logadempirical.cnn import run_cnn
+# from logadempirical.bert import run_logbert
+# from logadempirical.plelog import run_plelog
+# from logadempirical.neurallog import run_neuralog
+from sklearn.utils import shuffle
 
-sys.path.append("../../")
-
-
-def arg_parser():
-    """
-    add parser parameters
-    :return:
-    """
-    parser = ArgumentParser()
-    parser.add_argument("--model_name", help="which model to train", choices=["logbert", "deeplog", "loganomaly",
-                                                                              "logrobust", "baseline", "neurallog",
-                                                                              "cnn", "autoencoder", "plelog"])
-    parser.add_argument("--dataset_name", help="which dataset to use", choices=["hdfs", "bgl", "tbird", "hdfs_2k",
-                                                                                "bgl_2k", "tdb", "spirit", "bo",
-                                                                                "bgl2", "hadoop"])
-    parser.add_argument("--device", help="hardware device", default="cuda")
-    parser.add_argument("--data_dir", default="./dataset/", metavar="DIR", help="data directory")
-    parser.add_argument("--output_dir", default="./experimental_results/RQ1/random/", metavar="DIR",
-                        help="output directory")
-    parser.add_argument("--folder", default='bgl', metavar="DIR")
-
-    parser.add_argument('--log_file', help="log file name")
-    parser.add_argument("--sample_size", default=None, help="sample raw log")
-    parser.add_argument("--sample_log_file", default=None, help="if sampling raw logs, new log file name")
-
-    parser.add_argument("--parser_type", default=None, help="parse type drain or spell")
-    parser.add_argument("--log_format", default=None, help="log format",
-                        metavar="<Date> <Time> <Pid> <Level> <Component>: <Content>")
-    parser.add_argument("--regex", default=[], type=list, help="regex to clean log messages")
-    parser.add_argument("--keep_para", action='store_true', help="keep parameters in log messages after parsing")
-    parser.add_argument("--st", default=0.3, type=float, help="similarity threshold")
-    parser.add_argument("--depth", default=3, type=int, help="depth of all leaf nodes")
-    parser.add_argument("--max_child", default=100, type=int, help="max children in each node")
-    parser.add_argument("--tau", default=0.5, type=float,
-                        help="the percentage of tokens matched to merge a log message")
-
-    parser.add_argument("--is_process", action='store_true', help="if split train and test data")
-    parser.add_argument("--is_instance", action='store_true', help="if instances of log are available")
-    parser.add_argument("--train_file", default="train_fixed100_instances.pkl", help="train instances file name")
-    parser.add_argument("--test_file", default="test_fixed100_instances.pkl", help="test instances file name")
-    parser.add_argument("--window_type", type=str, choices=["sliding", "session"],
-                        help="window for building log sequence")
-    parser.add_argument("--session_level", type=str, choices=["entry", "hour"],
-                        help="window for building log sequence")
-    parser.add_argument('--window_size', default=5, type=float, help='window size(mins)')
-    parser.add_argument('--step_size', default=1, type=float, help='step size(mins)')
-    parser.add_argument('--train_size', default=0.4, type=float, help="train size", metavar="float or int")
-
-    parser.add_argument("--train_ratio", default=1, type=float)
-    parser.add_argument("--valid_ratio", default=0.1, type=float)
-    parser.add_argument("--test_ratio", default=1, type=float)
-
-    parser.add_argument("--max_epoch", default=200, type=int, help="epochs")
-    parser.add_argument("--n_epochs_stop", default=10, type=int,
-                        help="training stops after n epochs without improvement")
-    parser.add_argument("--n_warm_up_epoch", default=10, type=int, help="save model parameters after n warm-up epoch")
-    parser.add_argument("--batch_size", default=32, type=int)
-    parser.add_argument("--lr", default=0.01, type=float, help="learning rate")
-
-    # features
-    parser.add_argument("--is_logkey", action='store_true', help="is logkey included in features")
-    parser.add_argument("--random_sample", action='store_true', help="is logkey included in features")
-    parser.add_argument("--is_time", action='store_true', help="is time duration included in features")
-
-    parser.add_argument("--min_freq", default=1, type=int, help="min frequency of logkey")
-    # logbert
-    parser.add_argument("--seq_len", default=10, type=int, help="max length of sequence")
-    parser.add_argument("--min_len", default=10, type=int, help="min length of sequence")
-    parser.add_argument("--max_len", default=512, type=int, help="for position embedding in bert")
-    parser.add_argument("--mask_ratio", default=0.5, type=float, help="mask ratio in bert")
-    parser.add_argument("--adaptive_window", action='store_true',
-                        help="if true, window size is the length of sequences")
-
-    parser.add_argument("--deepsvdd_loss", action='store_true', help="if calculate deepsvdd loss")
-    parser.add_argument("--deepsvdd_loss_test", action='store_true', help="if use deepsvdd for prediction")
-
-    parser.add_argument("--scale", default=None, help="sklearn normalization methods")
-
-    parser.add_argument("--hidden", type=int, default=256, help="hidden size in logbert")
-    parser.add_argument("--layers", default=4, type=int, help="number of layers in bert")
-    parser.add_argument("--attn_heads", default=4, type=int, help="number of attention heads")
-
-    parser.add_argument("--num_workers", default=5, type=int)
-    parser.add_argument("--adam_beta1", default=0.9, type=float)
-    parser.add_argument("--adam_beta2", default=0.999, type=float)
-    parser.add_argument("--adam_weight_decay", default=0.00, type=float)
-
-    # deeplog, loganomaly & logrobust
-    parser.add_argument("--sample", default="sliding_window", help="split sequences by sliding window")
-    parser.add_argument("--history_size", default=10, type=int, help="window size for deeplog and log anomaly")
-    parser.add_argument("--embeddings", default="embeddings.json", help="template embedding json file")
-
-    # Features
-    parser.add_argument("--sequentials", default=True, help="sequences of logkeys")
-    parser.add_argument("--quantitatives", default=True, help="logkey count vector")
-    parser.add_argument("--semantics", default=False, action='store_true', help="logkey embedding with semantics "
-                                                                                "vectors")
-    parser.add_argument("--parameters", default=False, help="include paramters in logs after parsing such time")
-
-    parser.add_argument("--input_size", default=1, type=int, help="input size in lstm")
-    parser.add_argument("--hidden_size", default=128, type=int, help="hidden size in lstm")
-    parser.add_argument("--num_layers", default=2, type=int, help="num of lstm layers")
-    parser.add_argument("--embedding_dim", default=50, type=int, help="embedding dimension of logkeys")
-
-    parser.add_argument("--accumulation_step", default=1, type=int, help="let optimizer steps after several batches")
-    parser.add_argument("--optimizer", default="adam")
-    parser.add_argument("--lr_decay_ratio", default=0.1, type=float)
-
-    parser.add_argument("--num_candidates", default=9, type=int, help="top g candidates are normal")
-    parser.add_argument("--log_freq", default=100, type=int, help="logging frequency of the batch iteration")
-    parser.add_argument("--resume_path", action='store_true')
-
-    # neural_log
-    parser.add_argument("--num_encoder_layers", default=1, type=int, help="number of encoder layers")
-    parser.add_argument("--num_decoder_layers", default=1, type=int, help="number of decoder layers")
-    parser.add_argument("--dim_model", default=300, type=int, help="model's dim")
-    parser.add_argument("--num_heads", default=8, type=int, help="number of attention heads")
-    parser.add_argument("--dim_feedforward", default=2048, type=int, help="feed-forward network's dim")
-    parser.add_argument("--transformers_dropout", default=0.1, type=float, help="dropout rate of transformers model")
-    return parser
+from logadempirical.data import process_dataset
+from logadempirical.data.vocab import Vocab
+from logadempirical.data.feature_extraction import load_features, sliding_window
+from logadempirical.data.dataset import LogDataset, data_collate
+from logadempirical.helpers import arg_parser, get_loggers
+from logadempirical.models import get_model, ModelConfig
 
 
-def main():
-    # seed_everything(seed=int(time.clock()))
-    parser = arg_parser()
-    args = parser.parse_args()
-
-    args.data_dir = os.path.expanduser(args.data_dir + args.folder)
-
-    args.output_dir += args.folder
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir, exist_ok=True)
-
-    # sampling raw logs
-    if args.sample_size is not None:
-        sample_step_size = 10 ** 4
-        sample_raw_data(args.data_dir + args.log_file, args.data_dir + args.sample_log_file, args.sample_size,
-                        sample_step_size)
-        args.log_file = args.sample_log_file
-
-    # parse logs
-    if args.parser_type is not None:
-        args.log_format = " ".join([f"<{field}>" for field in args.log_format.split(",")])
-        parse_log(args.data_dir, args.output_dir, args.log_file, args.parser_type, args.log_format, args.regex,
-                  args.keep_para,
-                  args.st, args.depth, args.max_child, args.tau)
-
-    options = vars(args)
-    if options['session_level'] == "entry":
-        options["output_dir"] = options["output_dir"] + str(int(options["window_size"])) + "/"
-    if args.is_process:
-        process_dataset(data_dir=args.data_dir, output_dir=options["output_dir"], log_file=args.log_file,
-                        dataset_name=args.dataset_name, window_type=args.window_type,
-                        window_size=args.window_size, step_size=args.step_size,
-                        train_size=args.train_size, random_sample=args.random_sample, session_type=args.session_level)
-
-    if args.is_instance:
-        process_instance(data_dir=args.data_dir, output_dir=args.output_dir, train_file=args.train_file,
-                         test_file=args.test_file)
-
-    # if options['session_level'] == "entry":
-    #     options["output_dir"] = options["output_dir"] + str(options["window_size"]) + "/"
-    options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
-    options["train_vocab"] = options["output_dir"] + "train.pkl"
-    options["vocab_path"] = options["output_dir"] + options["model_name"] + "_vocab.pkl"  # pickle file
-    options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
-    options["scale_path"] = options["model_dir"] + "scale.pkl"
-
-    if not os.path.exists(options["model_dir"]):
-        os.mkdir(options["model_dir"])
-
-
-    print("Save options parameters")
-    save_parameters(options, options["model_dir"] + "parameters.txt")
-
-    if args.model_name == "logbert":
-        run_logbert(options)
-    elif args.model_name == "deeplog":
-        run_deeplog(options)
-    elif args.model_name == "loganomaly":
-        run_loganomaly(options)
-    elif args.model_name == "logrobust":
-        run_logrobust(options)
-    elif args.model_name == "cnn":
-        run_cnn(options)
-    elif args.model_name == "plelog":
-        run_plelog(options)
-    elif args.model_name == "baseline":
-        pass
-    elif args.model_name == "neurallog":
-        run_neuralog(options)
+def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
+    if not os.path.exists(vocab_path):
+        with open(train_path, 'rb') as f:
+            data = pickle.load(f)
+        if is_unsupervised:
+            logs = [x['EventTemplate'] for x in data if x['Label'] == 0]
+        else:
+            logs = [x['EventTemplate'] for x in data]
+        vocab = Vocab(logs, os.path.join(data_dir, embeddings))
+        logger.info(f"Vocab size: {len(vocab)}")
+        logger.info(f"Save vocab in {vocab_path}")
+        vocab.save_vocab(vocab_path)
     else:
-        raise NotImplementedError(f"Model {args.model_name} is not defined")
+        vocab = Vocab.load_vocab(vocab_path)
+        logger.info(f"Vocab size: {len(vocab)}")
+    return vocab
+
+
+def build_model(args, vocab_size):
+    criterion = torch.nn.CrossEntropyLoss()
+    if args.model_name == "DeepLog":
+        model_config = ModelConfig(
+            num_layers=args.num_layers,
+            hidden_size=args.hidden_size,
+            vocab_size=vocab_size,
+            embedding_dim=args.embedding_dim,
+            dropout=args.dropout,
+            criterion=criterion
+        )
+    elif args.model_name == "LogAnomaly":
+        model_config = ModelConfig(
+            input_size=args.input_size,
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers,
+            vocab_size=vocab_size,
+            embedding_dim=args.embedding_dim,
+            dropout=args.dropout,
+            criterion=criterion
+        )
+    elif args.model_name == "LogRobust":
+        model_config = ModelConfig(
+            input_size=args.input_size,
+            hidden_size=args.hidden_size,
+            num_layers=args.num_layers,
+            is_bilstm=True,
+            n_class=args.n_class,
+            criterion=criterion
+        )
+    elif args.model_name == "CNN":
+        model_config = ModelConfig(
+            embedding_dim=args.embedding_dim,
+            max_seq_len=args.max_seq_len,
+            n_class=args.n_class,
+            out_channels=args.out_channels,
+            criterion=criterion
+        )
+    elif args.model_name == "PLELog":
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
+    model = get_model(args.model_name, model_config)
+    return model
+
+
+def train(args, train_path, vocab, is_unsupervised=False):
+    print("Loading train dataset\n")
+    data = load_features(train_path, is_unsupervised)
+    sequentials, quantitatives, semantics, labels = sliding_window(
+        data,
+        vocab=vocab,
+        window_size=args.history_size,
+        is_train=True,
+        semantic=args.semantic,
+        quantitative=args.quantitative,
+        sequential=args.sequential,
+        is_unsupervised=is_unsupervised,
+        logger=logger
+    )
+    dataset = LogDataset(sequentials, quantitatives, semantics, labels)
+    n_valid = int(len(dataset) * args.valid_ratio)
+    train_dataset, valid_dataset = random_split(dataset, [len(dataset) - n_valid, n_valid])
+    logger.info(f"Train dataset: {len(train_dataset)}")
+    logger.info(f"Valid dataset: {len(valid_dataset)}")
+    print(train_dataset[0]['sequential'].shape)
+    print(train_dataset[0]['quantitative'].shape)
+    print(train_dataset[0]['semantic'].shape)
 
 
 if __name__ == "__main__":
-    main()
+    parser = arg_parser()
+    args = parser.parse_args()
+    logger = get_loggers(args.model_name)
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    if args.window_type == "sliding":
+        args.output_dir = f"{args.output_dir}/{args.dataset_name}_W{args.window_size}_S{args.step_size}_C{args.is_chronological}"
+    else:
+        args.output_dir = f"{args.output_dir}/{args.dataset_name}_session_W{args.window_size}_S{args.step_size}"
+    train_path, test_path = process_dataset(logger, data_dir=args.data_dir, output_dir=args.output_dir,
+                                            log_file=args.log_file,
+                                            dataset_name=args.dataset_name, window_type=args.window_type,
+                                            window_size=args.window_size, step_size=args.step_size,
+                                            train_size=args.train_size, is_chronological=args.is_chronological,
+                                            session_type=args.session_level)
+
+    os.makedirs(f"{args.output_dir}/vocabs", exist_ok=True)
+    vocab_path = f"{args.output_dir}/vocabs/{args.model_name}.pkl"
+    is_unsupervised = args.model_name in ["LogAnomaly", "DeepLog"]
+    log_vocab = build_vocab(vocab_path, args.data_dir, train_path, args.embeddings, is_unsupervised=is_unsupervised)
+    model = build_model(args, vocab_size=len(log_vocab))
+    print(model)
+    train(args, train_path, log_vocab, is_unsupervised=is_unsupervised)
+
+    # options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
+    # options["train_vocab"] = options["output_dir"] + "train.pkl"
+    # options["vocab_path"] = options["output_dir"] + options["model_name"] + "_vocab.pkl"  # pickle file
+    # options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
+    # options["scale_path"] = options["model_dir"] + "scale.pkl"
+    #
+    # os.makedirs(options["model_dir"], exist_ok=True)
+    #
+    # print("Save options parameters")
+    # save_parameters(options, options["model_dir"] + "parameters.txt")
+    #
+    # # if args.model_name == "logbert":
+    # #     run_logbert(options)
+    # if args.model_name == "deeplog":
+    #     run_deeplog(options)
+    # elif args.model_name == "loganomaly":
+    #     run_loganomaly(options)
+    # elif args.model_name == "logrobust":
+    #     run_logrobust(options)
+    # elif args.model_name == "cnn":
+    #     run_cnn(options)
+    # elif args.model_name == "plelog":
+    #     run_plelog(options)
+    # elif args.model_name == "baseline":
+    #     pass
+    # elif args.model_name == "neurallog":
+    #     run_neuralog(options)
+    # else:
+    #     raise NotImplementedError(f"Model {args.model_name} is not defined")
+
+    """ To run this file, use the following command:
+    python main.py
+        --data_dir ../data/
+        --output_dir ../output/
+        --model_name deeplog
+        --dataset_name bgl
+        --window_type session
+        --window_size 10
+        --step_size 1
+        --train_size 0.8
+        --is_chronological True
+        --session_level entry
+        --log_file BGL.log
+        --is_process True
+        --is_instance True
+        --train_file train.csv
+        --test_file test.csv
+        --batch_size 32
+        --lr 0.01
+        --num_workers 5
+        --adam_beta1 0.9
+        --adam_beta2 0.999
+        --adam_weight_decay 0.00
+        --accumulation_step 1
+        --optimizer adam
+        --lr_decay_ratio 0.1
+        --sequential True
+        --quantitative False
+        --semantic False
+        --sample sliding_window
+        --history_size 10
+        --embeddings embeddings.json
+        --input_size 1
+        --hidden_size 128
+        --num_layers 2
+        --embedding_dim 50
+        --num_candidates 9
+        --resume_path False
+        --num_encoder_layers 1
+        --dim_model 300
+        --num_heads 8
+        --dim_feedforward 2048
+        --transformers_dropout 0.1
+    """

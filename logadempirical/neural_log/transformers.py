@@ -194,12 +194,11 @@ class NeuralLog(nn.Module):
         self.pos_emb1 = RelPosEmb(1024, dim_model)
         self.pos_emb2 = AbsPosEmb(1024, dim_model)
 
-
-    def forward(self, features: list, device: str ='cuda:0'):
+    def forward(self, features: list, device: str = 'cuda:0'):
         inp = features[2]
         # print(inp.shape)
         x = self.transformers(inp, device)
-        x = torch.sum(x, dim = 1)
+        x = torch.sum(x, dim=1)
         x = self.dropout1(x)
         x = self.fc1(x)
         x = self.dropout2(x)

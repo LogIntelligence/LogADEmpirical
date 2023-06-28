@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
 
-import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import pickle
@@ -18,18 +17,24 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.utils import shuffle
 from sklearn.ensemble import IsolationForest as iForest
-
-from logadempirical.logdeep.dataset.log import log_dataset
-from logadempirical.logdeep.dataset.sample import sliding_window, load_features
-from logadempirical.logdeep.tools.utils import plot_train_valid_loss
-from logadempirical.logdeep.models.lstm import deeplog, loganomaly, robustlog
-from logadempirical.logdeep.models.autoencoder import AutoEncoder
-from logadempirical.logdeep.models.cnn import TextCNN
-from logadempirical.neural_log.transformers import NeuralLog
+from typing import List, Tuple, Dict, Any, Union
 
 
-class Trainer():
-    def __init__(self, options):
+class Trainer:
+    def __init__(self, model,
+                 train_dataset,
+                 valid_dataset,
+                 test_dataset=None,
+                 is_train=True,
+                 optimizers: Tuple[torch.optim.Optimizer, torch.optim.lr_scheduler.LambdaLR] = (None, None)
+                 ):
+        self.model = model
+        self.train_dataset = train_dataset
+        self.valid_dataset = valid_dataset
+        self.test_dataset = test_dataset
+        self.is_train = is_train
+        self.optimizer, self.scheduler = optimizers
+
         self.model_name = options['model_name']
         self.model_dir = options['model_dir']
         self.model_path = options['model_path']

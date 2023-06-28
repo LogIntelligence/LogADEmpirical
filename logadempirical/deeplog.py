@@ -15,7 +15,7 @@ def run_deeplog(options):
         for x in data:
             try:
                 l = max(x['Label'])
-            except:
+            except Exception as e:
                 l = x['Label']
             if l == 0:
                 logs.append(x['EventId'])

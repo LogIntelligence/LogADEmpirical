@@ -158,7 +158,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
             #     continue
 
             # duplicate_seq[seq] = len(labels)
-            sequential_pattern = []#line[i:i + window_size]
+            sequential_pattern = []  # line[i:i + window_size]
             semantic_pattern = []
             if semantics:
                 if is_bert:
@@ -174,7 +174,7 @@ def sliding_window(data_iter, vocab, window_size, is_train=True, data_dir="datas
                         else:
                             semantic_pattern.append(event2semantic_vec[event])
 
-            quantitative_pattern = [0]# * num_classes
+            quantitative_pattern = [0]  # * num_classes
             # log_counter = Counter(sequential_pattern)
             #
             # for key in log_counter:

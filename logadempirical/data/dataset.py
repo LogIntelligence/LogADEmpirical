@@ -5,15 +5,14 @@ import torch
 from torch.utils.data import Dataset
 
 
-class log_dataset(Dataset):
-    def __init__(self, labels, sequentials=None, quantitatives=None, semantics=None):
-        # if all sequentials, quantitatives, semantics are None, then raise error
+class LogDataset(Dataset):
+    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None):
         if sequentials is None and quantitatives is None and semantics is None:
             raise ValueError('Provide at least one feature type')
-        self.labels = labels
         self.sequentials = sequentials
         self.quantitatives = quantitatives
         self.semantics = semantics
+        self.labels = labels
 
     def __len__(self):
         return len(self.labels)
@@ -32,9 +31,9 @@ class log_dataset(Dataset):
 
         return {
             'label': label,
-            'sequential': sequential,
-            'quantitative': quantitative,
-            'semantic': semantic
+            'sequential': torch.from_numpy(np.array(sequential)) if sequential is not None else None,
+            'quantitative': torch.from_numpy(np.array(quantitative)) if quantitative is not None else None,
+            'semantic': torch.from_numpy(np.array(semantic)) if semantic is not None else None,
         }
 
 

@@ -10,7 +10,7 @@ import os
 from modules.data.Instance import parse_instance
 
 
-def load_fixed_windows_instances(log_file, train_ratio=0.2, window_size=20):
+def load_fixed_windows_instances(log_file, train_ratio=0.5, window_size=20):
     print("Loading", log_file)
     logs = pd.read_csv(log_file, memory_map=True)
     logs = logs.to_dict('records')
@@ -200,9 +200,9 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
                 contents.append(content)
 
             x.append({"SessionId": len(x), "EventId": events.copy(), "Label": label})
-                # parse_instance(events.copy(), None, label, event_ids=event_ids.copy(),
-                #                     messages=contents.copy(),
-                #                     confidence=1))
+            # parse_instance(events.copy(), None, label, event_ids=event_ids.copy(),
+            #                     messages=contents.copy(),
+            #                     confidence=1))
             i = r
 
     x = shuffle(x)
@@ -229,13 +229,12 @@ def load_Hadoop(log_file, label_file, train_ratio=0.5, window_size=20):
 
 
 if __name__ == '__main__':
-
     # x_tr, x_te = load_Hadoop("spirit/Hadoop.log_structured.csv", "hadoop/label.json", train_ratio=0.8)
 
     x_tr, x_te = load_fixed_windows_instances(
         "../../LogVectorization/logparser/benchmark/Drain_result/Spirit5M.log_structured.csv",
         train_ratio=0.8,
-        window_size=20)
+        window_size=500)
 
     # with open("hadoop/train.pkl", mode="wb") as f:
     #     pickle.dump(x_tr, f, protocol=pickle.HIGHEST_PROTOCOL)
