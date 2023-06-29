@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from typing import Any
 import logging
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
 
 
 class Trainer:
@@ -58,20 +59,28 @@ class Trainer:
         self.model.eval()
         y_pred = []
         y_true = []
+        y_score = []
         losses = []
         with torch.no_grad():
             for idx, batch in tqdm(enumerate(val_loader), total=len(val_loader), desc=f"Epoch {epoch + 1}::Valid"):
+                del batch['idx']
                 batch = {k: v.to(device) for k, v in batch.items()}
                 outputs = self.model(batch, device=device)
                 loss = outputs.loss
                 losses.append(loss.item())
                 y_pred.append(torch.argmax(outputs.probabilities, dim=1).cpu().numpy())
                 y_true.append(batch['label'].cpu().numpy())
+                y_score.append(outputs.probabilities[:, 1].cpu().numpy())
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
+        y_score = np.concatenate(y_score)
         loss = np.mean(losses)
-        acc = np.mean(y_pred == y_true)
-        self.logger.info(f"Epoch {epoch + 1}::Valid || Loss: {loss:.4f} - Acc: {acc:.4f}")
+        acc = accuracy_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+        pre = precision_score(y_true, y_pred)
+        rec = recall_score(y_true, y_pred)
+        auc = roc_auc_score(y_true, y_score)
+        return loss, acc, f1, pre, rec, auc
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
@@ -87,11 +96,69 @@ class Trainer:
         self.model.to(device)
         for epoch in range(self.no_epochs):
             self._train_epoch(epoch, train_loader, device, scheduler)
-            self._valid_epoch(epoch, val_loader, device)
+            loss, acc, f1, pre, rec, auc = self._valid_epoch(epoch, val_loader, device)
+            if self.logger is not None:
+                self.logger.info(
+                    f"Epoch {epoch + 1}::Valid || Loss: {loss:.4f} - Acc: {acc:.4f} - F1: {f1:.4f} - \
+                    Precision: {pre:.4f} - Recall: {rec:.4f} - ROC-AUC: {auc:.4f}")
             if save_dir is not None and model_name is not None:
                 self.save_model(save_dir, model_name)
+        self.save_model(save_dir, model_name)
+        return loss, acc, f1, pre, rec, auc
+
+    def predict_supervised(self, dataset, y_true, device: str = 'cpu'):
+        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        self.model.to(device)
+        self.model.eval()
+        y_pred = {k: 0 for k in y_true.keys()}
+        with torch.no_grad():
+            for batch in tqdm(test_loader, total=len(test_loader), desc=f"Predict"):
+                idxs = batch['idx'].clone().cpu().tolist()
+                del batch['idx']
+                batch = {k: v.to(device) for k, v in batch.items()}
+                y_prob = self.model.predict(batch, device=device)
+                y = torch.argmax(y_prob, dim=1).cpu().numpy().tolist()
+                for idx, y_i in zip(idxs, y):
+                    y_pred[idx] = y_pred[idx] | y_i
+
+        idxs = list(y_true.keys())
+        y_pred = np.array([y_pred[idx] for idx in idxs])
+        y_true = np.array([y_true[idx] for idx in idxs])
+        acc = accuracy_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+        pre = precision_score(y_true, y_pred)
+        rec = recall_score(y_true, y_pred)
+        return acc, f1, pre, rec
+
+    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu'):
+        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        self.model.to(device)
+        self.model.eval()
+        y_pred = {k: 0 for k in y_true.keys()}
+        with torch.no_grad():
+            for batch in tqdm(test_loader, total=len(test_loader), desc=f"Predict"):
+                idxs = batch['idx'].clone().cpu().tolist()
+                del batch['idx']
+                batch = {k: v.to(device) for k, v in batch.items()}
+                y_prob = self.model.predict(batch, device=device)
+                y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk].cpu().numpy().tolist()
+                batch_label = batch['label'].cpu().numpy().tolist()
+                for idx, y_i, label_i in zip(idxs, y, batch_label):
+                    y_pred[idx] = y_pred[idx] | (label_i not in y_i)
+
+        idxs = list(y_pred.keys())
+        y_pred = np.array([y_pred[idx] for idx in idxs])
+        y_true = np.array([y_true[idx] for idx in idxs])
+        acc = accuracy_score(y_true, y_pred)
+        f1 = f1_score(y_true, y_pred)
+        pre = precision_score(y_true, y_pred)
+        rec = recall_score(y_true, y_pred)
+        return acc, f1, pre, rec
 
     def save_model(self, save_dir: str, model_name: str):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         torch.save(self.model.state_dict(), os.path.join(save_dir, model_name))
+
+    def load_model(self, model_path: str):
+        self.model.load_state_dict(torch.load(model_path))

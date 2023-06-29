@@ -6,19 +6,20 @@ from torch.utils.data import Dataset
 
 
 class LogDataset(Dataset):
-    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None):
+    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None, idxs=None):
         if sequentials is None and quantitatives is None and semantics is None:
             raise ValueError('Provide at least one feature type')
         self.sequentials = sequentials
         self.quantitatives = quantitatives
         self.semantics = semantics
         self.labels = labels
+        self.idxs = idxs
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        item = {'label': self.labels[idx]}
+        item = {'label': self.labels[idx], 'idx': self.idxs[idx]}
         if self.sequentials is not None:
             item['sequential'] = torch.from_numpy(np.array(self.sequentials[idx]))
         if self.quantitatives is not None:

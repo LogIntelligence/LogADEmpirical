@@ -11,14 +11,14 @@ class NeuralLog(torch.nn.Module):
                  num_encoder_layers: int = 6,
                  dim_model: int = 512,
                  n_class: int = 2,
+                 dropout: float = 0.1,
                  criterion: Optional[torch.nn.Module] = torch.nn.CrossEntropyLoss(),
                  ):
         super().__init__()
-        self.encoder_layer = TransformerEncoderLayer(dim_model, 8, 2048, 0.1)
+        self.encoder_layer = TransformerEncoderLayer(dim_model, 8, 2048, dropout=dropout)
         self.encoder = TransformerEncoder(
             self.encoder_layer, num_encoder_layers
         )
-        self.dropout = torch.nn.Dropout(0.1)
         self.linear = torch.nn.Linear(dim_model, n_class)
         self.criterion = criterion
 
@@ -27,7 +27,6 @@ class NeuralLog(torch.nn.Module):
         src = src + positional_encoding(src.shape[1], src.shape[2]).to(device)
         src = self.encoder(src)
         src = src.sum(dim=1)
-        src = self.dropout(src)
         logits = self.linear(src)
         probabilities = torch.softmax(logits, dim=-1)
         loss = None

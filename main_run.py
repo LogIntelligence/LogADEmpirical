@@ -67,6 +67,7 @@ def build_model(args, vocab_size):
             embedding_dim=args.embedding_dim,
             max_seq_len=args.history_size,
             n_class=args.n_class,
+            dropout=args.dropout,
             out_channels=args.hidden_size,
             criterion=criterion
         )

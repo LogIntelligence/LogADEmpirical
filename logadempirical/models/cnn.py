@@ -14,6 +14,7 @@ class TextCNN(nn.Module):
                  max_seq_len: int = 100,
                  out_channels: int = 100,
                  n_class: int = 2,
+                 dropout: float = 0.5,
                  criterion: Optional[nn.Module] = None):
         super(TextCNN, self).__init__()
 
@@ -23,7 +24,8 @@ class TextCNN(nn.Module):
         self.convs = nn.ModuleList([nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(kernel_size, embedding_dim)),
             nn.ReLU(),
-            nn.MaxPool2d((max_seq_len - kernel_size + 1, 1))
+            nn.MaxPool2d((max_seq_len - kernel_size + 1, 1)),
+            nn.Dropout(dropout)
         ) for kernel_size in self.kernel_size_list])
 
         self.fc = nn.Linear(len(self.kernel_size_list) * out_channels, n_class)

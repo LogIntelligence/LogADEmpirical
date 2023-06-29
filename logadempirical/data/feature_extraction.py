@@ -50,13 +50,14 @@ def sliding_window(data: List[Tuple[List[str], int]],
                    logger: Optional[Any] = None,
                    ) -> Any:
     log_sequences = []
-    num_sessions = 0
+    session_labels = {}
 
     for idx, (templates, labels) in tqdm(enumerate(data), total=len(data),
                                          desc=f"Sliding window with size {window_size}"):
         line = list(templates)
         seq_len = max(window_size, len(line))
         line = [vocab.pad_token] * (seq_len - len(line)) + line
+        session_labels[idx] = labels if isinstance(labels, int) else max(labels)
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
                 label = vocab.get_event(line[i + window_size])
@@ -86,8 +87,8 @@ def sliding_window(data: List[Tuple[List[str], int]],
             if semantic:
                 sequence['semantic'] = semantic_pattern
             sequence['label'] = label
+            sequence['idx'] = idx
             log_sequences.append(sequence)
-        num_sessions += 1
 
     if is_train and not is_unsupervised:
         normal_dict = {hash(tuple(seq['sequential'])): 0 for seq in log_sequences if seq['label'] == 0}
@@ -105,9 +106,10 @@ def sliding_window(data: List[Tuple[List[str], int]],
     if semantic:
         semantics = [seq['semantic'] for seq in log_sequences]
     labels = [seq['label'] for seq in log_sequences]
+    sequence_idxs = [seq['idx'] for seq in log_sequences]
     logger.info(f"Number of sequences: {len(labels)}")
     if not is_unsupervised:
         logger.info(f"Number of normal sequence: {len(labels) - sum(labels)}")
         logger.info(f"Number of abnormal sequence: {sum(labels)}")
 
-    return sequentials, quantitatives, semantics, labels
+    return sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels
