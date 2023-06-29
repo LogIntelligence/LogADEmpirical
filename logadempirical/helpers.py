@@ -64,7 +64,7 @@ def arg_parser():
     parser.add_argument("--hidden_size", default=128, type=int, help="hidden size in lstm")
     parser.add_argument("--num_layers", default=2, type=int, help="num of lstm layers")
     parser.add_argument("--embedding_dim", default=50, type=int, help="embedding dimension of logkeys")
-    parser.add_argument("--num_candidates", default=9, type=int, help="top g candidates are normal")
+    parser.add_argument("--topk", default=9, type=int, help="top g candidates are normal")
     parser.add_argument("--resume_path", action='store_true')
 
     # neural_log

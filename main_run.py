@@ -1,9 +1,8 @@
 import os
 import pickle
 
-import numpy as np
 import torch
-from torch.utils.data import random_split
+from sklearn.utils import shuffle
 
 from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
@@ -79,11 +78,15 @@ def build_model(args, vocab_size):
     return model
 
 
-def train(args, train_path, vocab, model, is_unsupervised=False):
+def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     print("Loading train dataset\n")
     data = load_features(train_path, is_unsupervised)
-    sequentials, quantitatives, semantics, labels = sliding_window(
-        data,
+    data = shuffle(data)
+    n_valid = int(len(data) * args.valid_ratio)
+    train_data, valid_data = data[:-n_valid], data[-n_valid:]
+
+    sequentials, quantitatives, semantics, labels, idxs, _ = sliding_window(
+        train_data,
         vocab=vocab,
         window_size=args.history_size,
         is_train=True,
@@ -93,9 +96,20 @@ def train(args, train_path, vocab, model, is_unsupervised=False):
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    dataset = LogDataset(sequentials, quantitatives, semantics, labels)
-    n_valid = int(len(dataset) * args.valid_ratio)
-    train_dataset, valid_dataset = random_split(dataset, [len(dataset) - n_valid, n_valid])
+    train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
+    sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
+        valid_data,
+        vocab=vocab,
+        window_size=args.history_size,
+        is_train=False,
+        semantic=args.semantic,
+        quantitative=args.quantitative,
+        sequential=args.sequential,
+        is_unsupervised=is_unsupervised,
+        logger=logger
+    )
+    valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+    print(valid_dataset[0])
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
     optimizer = get_optimizer(args, model.parameters())
@@ -113,7 +127,45 @@ def train(args, train_path, vocab, model, is_unsupervised=False):
         logger=logger
     )
 
-    trainer.train(device=args.device, save_dir=args.output_dir, model_name=args.model_name)
+    # trainer.train(device=args.device, save_dir=args.output_dir, model_name=args.model_name)
+    # if is_unsupervised:
+    #     acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
+    #                                                      session_labels,
+    #                                                      topk=args.topk,
+    #                                                      device=args.device)
+    # else:
+    #     acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
+    #                                                    session_labels,
+    #                                                    device=args.device)
+    # logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+
+    print("Loading test dataset\n")
+    data = load_features(test_path, is_unsupervised)
+    sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
+        data,
+        vocab=vocab,
+        window_size=args.history_size,
+        is_train=False,
+        semantic=args.semantic,
+        quantitative=args.quantitative,
+        sequential=args.sequential,
+        is_unsupervised=is_unsupervised,
+        logger=logger
+    )
+    test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+    print(test_dataset[0])
+    logger.info(f"Test dataset: {len(test_dataset)}")
+    if is_unsupervised:
+        acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
+                                                         session_labels,
+                                                         topk=args.topk,
+                                                         device=args.device)
+    else:
+        acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
+                                                       session_labels,
+                                                       device=args.device)
+    logger.info(f"Test Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+    return acc, f1, pre, rec
 
 
 if __name__ == "__main__":
@@ -139,7 +191,7 @@ if __name__ == "__main__":
     log_vocab = build_vocab(vocab_path, args.data_dir, train_path, args.embeddings, is_unsupervised=is_unsupervised)
     model = build_model(args, vocab_size=len(log_vocab))
     print(model)
-    train(args, train_path, log_vocab, model, is_unsupervised=is_unsupervised)
+    run(args, train_path, test_path, log_vocab, model, is_unsupervised=is_unsupervised)
 
     # options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
     # options["train_vocab"] = options["output_dir"] + "train.pkl"
