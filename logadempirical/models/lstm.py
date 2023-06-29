@@ -23,9 +23,9 @@ class DeepLog(nn.Module):
         torch.nn.init.uniform_(self.embedding.weight)
         self.embedding.weight.requires_grad = True
 
-        self.lstm = nn.LSTM(self.embedding_dim,
-                            hidden_size,
-                            num_layers,
+        self.lstm = nn.LSTM(input_size=self.embedding_dim,
+                            hidden_size=self.hidden_size,
+                            num_layers=self.num_layers,
                             batch_first=True,
                             bidirectional=False,
                             dropout=dropout)
@@ -60,7 +60,7 @@ class DeepLog(nn.Module):
 
 class LogRobust(nn.Module):
     def __init__(self,
-                 input_size: int = 300,
+                 embedding_dim: int = 300,
                  hidden_size: int = 100,
                  num_layers: int = 2,
                  is_bilstm: bool = True,
@@ -70,9 +70,9 @@ class LogRobust(nn.Module):
         super(LogRobust, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size,
-                            hidden_size,
-                            num_layers,
+        self.lstm = nn.LSTM(input_size=embedding_dim,
+                            hidden_size=hidden_size,
+                            num_layers=num_layers,
                             batch_first=True,
                             bidirectional=is_bilstm,
                             dropout=dropout)
@@ -132,32 +132,35 @@ class LogRobust(nn.Module):
 # log key add embedding
 class LogAnomaly(nn.Module):
     def __init__(self,
-                 input_size: int = 100,
                  hidden_size: int = 128,
                  num_layers: int = 2,
                  vocab_size: int = 100,
                  embedding_dim: int = 300,
                  dropout: float = 0.5,
-                 criterion: Optional[nn.Module] = None):
+                 criterion: Optional[nn.Module] = None,
+                 use_semantic: bool = True):
         super(LogAnomaly, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
-        self.embedding = nn.Embedding(self.vocab_size + 1, self.embedding_dim)
-        torch.nn.init.uniform_(self.embedding.weight)
-        self.embedding.weight.requires_grad = True
+        self.use_semantic = use_semantic
+        self.embedding = None
+        if not self.use_semantic:
+            self.embedding = nn.Embedding(self.vocab_size + 1, self.embedding_dim)
+            torch.nn.init.uniform_(self.embedding.weight)
+            self.embedding.weight.requires_grad = True
 
-        self.lstm0 = nn.LSTM(self.embedding_dim,
-                             hidden_size,
-                             num_layers,
+        self.lstm0 = nn.LSTM(input_size=self.embedding_dim,
+                             hidden_size=hidden_size,
+                             num_layers=num_layers,
                              batch_first=True,
                              dropout=dropout,
                              bidirectional=False)
 
-        self.lstm1 = nn.LSTM(input_size,
-                             hidden_size,
-                             num_layers,
+        self.lstm1 = nn.LSTM(input_size=1,
+                             hidden_size=hidden_size,
+                             num_layers=num_layers,
                              batch_first=True,
                              dropout=dropout,
                              bidirectional=False)
@@ -165,11 +168,14 @@ class LogAnomaly(nn.Module):
         self.criterion = criterion
 
     def forward(self, batch, device='cpu'):
-        x_sem = batch['semantic']
-        x_quant = batch['quantitative']
+        x_quant = batch['quantitative'].to(device)
+        if self.use_semantic:
+            x_sem = batch['semantic'].to(device)
+        else:
+            x_sem = self.embedding(batch['sequential'].to(device))
         y = batch['label']
-        out0, _ = self.lstm0(x_sem.to(device))
-        out1, _ = self.lstm1(x_quant.to(device))
+        out0, _ = self.lstm0(x_sem)
+        out1, _ = self.lstm1(x_quant)
 
         multi_out = torch.cat((out0[:, -1, :], out1[:, -1, :]), -1)
         logits = self.fc(multi_out)
@@ -196,10 +202,11 @@ class LogAnomaly(nn.Module):
 if __name__ == '__main__':
     deeplog = DeepLog(128, 2, 100, 128)
     logrobust = LogRobust(300, 128, 2)
-    loganomaly = LogAnomaly(100, 128, 2, 100, 300)
+    loganomaly = LogAnomaly(1, 128, 2, 100, 300)
     sem_inp = torch.rand(64, 100, 300)
-    quan_inp = torch.rand(64, 100, 100)
+    quan_inp = torch.rand(64, 100)
     seq_inp = torch.randint(100, (64, 100))
+    print(quan_inp.shape)
     pred_labels = torch.randint(100, (64,))
     class_labels = torch.randint(2, (64,))
     out = logrobust(sem_inp, class_labels)

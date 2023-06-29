@@ -22,9 +22,9 @@ class LogDataset(Dataset):
         if self.sequentials is not None:
             item['sequential'] = torch.from_numpy(np.array(self.sequentials[idx]))
         if self.quantitatives is not None:
-            item['quantitative'] = torch.from_numpy(np.array(self.quantitatives[idx]))
+            item['quantitative'] = torch.from_numpy(np.array(self.quantitatives[idx], )[:, np.newaxis]).float()
         if self.semantics is not None:
-            item['semantic'] = torch.from_numpy(np.array(self.semantics[idx]))
+            item['semantic'] = torch.from_numpy(np.array(self.semantics[idx])).float()
 
         return item
 

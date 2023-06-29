@@ -105,9 +105,9 @@ def sliding_window(data: List[Tuple[List[str], int]],
     if semantic:
         semantics = [seq['semantic'] for seq in log_sequences]
     labels = [seq['label'] for seq in log_sequences]
-
     logger.info(f"Number of sequences: {len(labels)}")
-    logger.info(f"Number of normal sequence: {len(labels) - sum(labels)}")
-    logger.info(f"Number of abnormal sequence: {sum(labels)}")
+    if not is_unsupervised:
+        logger.info(f"Number of normal sequence: {len(labels) - sum(labels)}")
+        logger.info(f"Number of abnormal sequence: {sum(labels)}")
 
     return sequentials, quantitatives, semantics, labels

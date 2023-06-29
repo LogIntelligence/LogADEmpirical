@@ -8,12 +8,10 @@ from torch.utils.data import random_split
 from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
 from logadempirical.data.feature_extraction import load_features, sliding_window
-from logadempirical.data.dataset import LogDataset, data_collate
+from logadempirical.data.dataset import LogDataset
 from logadempirical.helpers import arg_parser, get_loggers
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
-from transformers import get_scheduler
-from torch.utils.data import DataLoader
 
 
 def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
@@ -47,17 +45,17 @@ def build_model(args, vocab_size):
         )
     elif args.model_name == "LogAnomaly":
         model_config = ModelConfig(
-            input_size=args.input_size,
             hidden_size=args.hidden_size,
             num_layers=args.num_layers,
             vocab_size=vocab_size,
             embedding_dim=args.embedding_dim,
             dropout=args.dropout,
-            criterion=criterion
+            criterion=criterion,
+            use_semantic=args.semantic
         )
     elif args.model_name == "LogRobust":
         model_config = ModelConfig(
-            input_size=args.input_size,
+            embedding_dim=args.embedding_dim,
             hidden_size=args.hidden_size,
             num_layers=args.num_layers,
             is_bilstm=True,
@@ -67,9 +65,9 @@ def build_model(args, vocab_size):
     elif args.model_name == "CNN":
         model_config = ModelConfig(
             embedding_dim=args.embedding_dim,
-            max_seq_len=args.max_seq_len,
+            max_seq_len=args.history_size,
             n_class=args.n_class,
-            out_channels=args.out_channels,
+            out_channels=args.hidden_size,
             criterion=criterion
         )
     elif args.model_name == "PLELog":
@@ -99,7 +97,9 @@ def train(args, train_path, vocab, model, is_unsupervised=False):
     train_dataset, valid_dataset = random_split(dataset, [len(dataset) - n_valid, n_valid])
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), eps=args.epsilon,
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
+                                 betas=(args.adam_beta1, args.adam_beta2),
+                                 eps=args.epsilon,
                                  weight_decay=args.weight_decay)
     trainer = Trainer(
         model,

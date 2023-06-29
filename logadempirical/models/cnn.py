@@ -59,7 +59,8 @@ class TextCNN(nn.Module):
 
 
 if __name__ == '__main__':
-    model = TextCNN(300, 100, 8)
-    inp = torch.rand(64, 100, 300)
-    out = model(inp)
+    model = TextCNN(300, 15, 128)
+    print(model)
+    inp = torch.rand(64, 15, 300)
+    out = model({"semantic": inp, "label": torch.randint(0, 2, (64,))})
     print(out.logits.shape)

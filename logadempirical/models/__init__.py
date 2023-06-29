@@ -12,11 +12,11 @@ class ModelConfig:
                  embedding_dim: Optional[int] = None,
                  criterion: Optional[torch.nn.Module] = None,
                  dropout: float = 0.5,
-                 input_size: Optional[int] = None,
                  is_bilstm: Optional[bool] = None,
                  n_class: Optional[int] = None,
                  max_seq_len: Optional[int] = None,
                  out_channels: Optional[int] = None,
+                 use_semantic: Optional[bool] = False,
                  ):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -24,11 +24,11 @@ class ModelConfig:
         self.embedding_dim = embedding_dim
         self.criterion = criterion
         self.dropout = dropout
-        self.input_size = input_size
         self.is_bilstm = is_bilstm
         self.n_class = n_class
         self.max_seq_len = max_seq_len
         self.out_channels = out_channels
+        self.use_semantic = use_semantic
 
 
 def get_model(model_name, config):
@@ -42,7 +42,7 @@ def get_model(model_name, config):
         )
     elif model_name == 'LogRobust':
         model = LogRobust(
-            input_size=config.input_size,
+            embedding_dim=config.embedding_dim,
             hidden_size=config.hidden_size,
             num_layers=config.num_layers,
             is_bilstm=config.is_bilstm,
@@ -51,7 +51,6 @@ def get_model(model_name, config):
         )
     elif model_name == 'LogAnomaly':
         model = LogAnomaly(
-            input_size=config.input_size,
             hidden_size=config.hidden_size,
             num_layers=config.num_layers,
             vocab_size=config.vocab_size,
