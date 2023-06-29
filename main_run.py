@@ -9,7 +9,7 @@ from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
 from logadempirical.data.feature_extraction import load_features, sliding_window
 from logadempirical.data.dataset import LogDataset
-from logadempirical.helpers import arg_parser, get_loggers
+from logadempirical.helpers import arg_parser, get_loggers, get_optimizer
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
 
@@ -97,10 +97,7 @@ def train(args, train_path, vocab, model, is_unsupervised=False):
     train_dataset, valid_dataset = random_split(dataset, [len(dataset) - n_valid, n_valid])
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
-                                 betas=(args.adam_beta1, args.adam_beta2),
-                                 eps=args.epsilon,
-                                 weight_decay=args.weight_decay)
+    optimizer = get_optimizer(args, model.parameters())
     trainer = Trainer(
         model,
         train_dataset=train_dataset,
