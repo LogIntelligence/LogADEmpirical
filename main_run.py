@@ -12,6 +12,8 @@ from logadempirical.helpers import arg_parser, get_loggers, get_optimizer
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
 
+from accelerate import Accelerator
+
 
 def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
     if not os.path.exists(vocab_path):
@@ -109,10 +111,14 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         logger=logger
     )
     valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
-    print(valid_dataset[0])
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
     optimizer = get_optimizer(args, model.parameters())
+
+    accelerator = Accelerator()
+    device = accelerator.device
+    model = model.to(device)
+
     trainer = Trainer(
         model,
         train_dataset=train_dataset,
@@ -124,19 +130,20 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         scheduler_type=args.scheduler,
         warmup_rate=args.warmup_rate,
         accumulation_step=args.accumulation_step,
-        logger=logger
+        logger=logger,
+        accelerator=accelerator
     )
 
-    trainer.train(device=args.device, save_dir=args.output_dir, model_name=args.model_name)
+    trainer.train(device=device)
     if is_unsupervised:
         acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
                                                          session_labels,
                                                          topk=args.topk,
-                                                         device=args.device)
+                                                         device=device)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
                                                        session_labels,
-                                                       device=args.device)
+                                                       device=device)
     logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
 
     print("Loading test dataset\n")
