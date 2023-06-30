@@ -11,8 +11,9 @@ from logadempirical.data.dataset import LogDataset
 from logadempirical.helpers import arg_parser, get_loggers, get_optimizer
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
-
 from accelerate import Accelerator
+
+accelerator = Accelerator()
 
 
 def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
@@ -115,7 +116,6 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     logger.info(f"Valid dataset: {len(valid_dataset)}")
     optimizer = get_optimizer(args, model.parameters())
 
-    accelerator = Accelerator()
     device = accelerator.device
     model = model.to(device)
 

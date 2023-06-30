@@ -46,7 +46,7 @@ class Trainer:
         self.optimizer.zero_grad()
         total_loss = 0
         for idx, batch in enumerate(train_loader):
-            batch = {k: v.to(device) for k, v in batch.items()}
+            # batch = {k: v.to(device) for k, v in batch.items()}
             outputs = self.model(batch, device=device)
             loss = outputs.loss
             total_loss += loss.item()
@@ -69,11 +69,10 @@ class Trainer:
         with torch.no_grad():
             for idx, batch in enumerate(val_loader):
                 del batch['idx']
-                batch = {k: v.to(device) for k, v in batch.items()}
+                # batch = {k: v.to(device) for k, v in batch.items()}
                 outputs = self.model(batch, device=device)
                 loss = outputs.loss
                 probabilities = outputs.probabilities
-                loss = self.accelerator.gather(loss)
                 probabilities = self.accelerator.gather(probabilities)
                 losses.append(loss.item())
                 y_pred.append(torch.argmax(probabilities, dim=1).detach().clone().cpu().numpy())

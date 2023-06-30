@@ -1,7 +1,8 @@
 import os
 from argparse import ArgumentParser
-import logging
+from accelerate.logging import get_logger
 from torch import optim
+import logging
 
 
 def arg_parser():
@@ -80,13 +81,7 @@ def arg_parser():
 
 
 def get_loggers(model_name):
-    logger = logging.getLogger(model_name)
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
+    logger = get_logger(model_name, log_level="DEBUG")
     return logger
 
 
