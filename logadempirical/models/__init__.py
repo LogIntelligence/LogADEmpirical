@@ -11,6 +11,7 @@ def get_model(model_name: str, config: ModelConfig):
             hidden_size=config.hidden_size,
             vocab_size=config.vocab_size,
             embedding_dim=config.embedding_dim,
+            dropout=config.dropout,
             criterion=config.criterion
         )
     elif model_name == 'LogRobust':
@@ -19,6 +20,7 @@ def get_model(model_name: str, config: ModelConfig):
             hidden_size=config.hidden_size,
             num_layers=config.num_layers,
             is_bilstm=config.is_bilstm,
+            dropout=config.dropout,
             n_class=config.n_class,
             criterion=config.criterion
         )

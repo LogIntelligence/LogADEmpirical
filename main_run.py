@@ -136,7 +136,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         accelerator=accelerator
     )
 
-    trainer.train(device=device)
+    trainer.train(device=device, save_dir=args.save_dir, model_name=args.model_name)
     if is_unsupervised:
         acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
                                                          session_labels,

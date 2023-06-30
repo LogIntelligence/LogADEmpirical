@@ -174,7 +174,8 @@ class Trainer:
     def save_model(self, save_dir: str, model_name: str):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        torch.save(self.model.state_dict(), os.path.join(save_dir, model_name))
+        self.model = self.accelerator.unwrap_model(self.model)
+        self.accelerator.save(self.model.state_dict(), f"{save_dir}/{model_name}.pt")
 
     def load_model(self, model_path: str):
         self.model.load_state_dict(torch.load(model_path))
