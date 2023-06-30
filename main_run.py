@@ -162,7 +162,6 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         logger=logger
     )
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
-    print(test_dataset[0])
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
