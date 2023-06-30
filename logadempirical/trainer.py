@@ -66,18 +66,18 @@ class Trainer:
         y_pred = []
         y_true = []
         losses = []
-        with torch.no_grad():
-            for idx, batch in enumerate(val_loader):
-                del batch['idx']
-                # batch = {k: v.to(device) for k, v in batch.items()}
+        for idx, batch in enumerate(val_loader):
+            del batch['idx']
+            # batch = {k: v.to(device) for k, v in batch.items()}
+            with torch.no_grad():
                 outputs = self.model(batch, device=device)
-                loss = outputs.loss
-                probabilities = outputs.probabilities
-                probabilities = self.accelerator.gather(probabilities)
-                losses.append(loss.item())
-                y_pred.append(torch.argmax(probabilities, dim=1).detach().clone().cpu().numpy())
-                label = self.accelerator.gather(batch['label'])
-                y_true.append(label.detach().clone().cpu().numpy())
+            loss = outputs.loss
+            probabilities = outputs.probabilities
+            y_pred.append(torch.argmax(probabilities, dim=1).detach().clone().cpu().numpy())
+            y_pred = self.accelerator.gather(y_pred)
+            losses.append(loss.item())
+            label = self.accelerator.gather(batch['label'])
+            y_true.append(label.detach().clone().cpu().numpy())
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
         loss = np.mean(losses)
@@ -103,6 +103,7 @@ class Trainer:
                             disable=not self.accelerator.is_local_main_process)
         for epoch in range(self.no_epochs):
             train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
+            print("Validation...")
             val_loss, val_acc = self._valid_epoch(val_loader, device)
             if self.logger is not None:
                 self.logger.info(
