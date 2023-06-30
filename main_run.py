@@ -119,6 +119,8 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     device = accelerator.device
     model = model.to(device)
 
+    logger.info(f"Start training {args.model_name} model on {device} device")
+
     trainer = Trainer(
         model,
         train_dataset=train_dataset,
