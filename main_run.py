@@ -166,7 +166,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         semantic=args.semantic,
         quantitative=args.quantitative,
         sequential=args.sequential,
-        is_unsupervised=is_unsupervised,
+        is_unsupervised=False,
         logger=logger
     )
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)

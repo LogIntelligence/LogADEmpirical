@@ -153,7 +153,7 @@ class Trainer:
             for batch in test_loader:
                 idxs = self.accelerator.gather(batch['idx']).cpu().numpy().tolist()
                 del batch['idx']
-                batch = {k: v.to(device) for k, v in batch.items()}
+                # batch = {k: v.to(device) for k, v in batch.items()}
                 y_prob = self.model.predict(batch, device=device)
                 y_prob = self.accelerator.gather(y_prob)
                 y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk].cpu().numpy().tolist()
