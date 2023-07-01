@@ -149,18 +149,18 @@ class Trainer:
         y_pred = {k: 0 for k in y_true.keys()}
         progress_bar = tqdm(total=len(test_loader), desc=f"Predict",
                             disable=not self.accelerator.is_local_main_process)
-        with torch.no_grad():
-            for batch in test_loader:
-                idxs = self.accelerator.gather(batch['idx']).cpu().numpy().tolist()
-                del batch['idx']
-                # batch = {k: v.to(device) for k, v in batch.items()}
+        for batch in test_loader:
+            idxs = self.accelerator.gather(batch['idx']).detach().clone().cpu().numpy().tolist()
+            del batch['idx']
+            # batch = {k: v.to(device) for k, v in batch.items()}
+            with torch.no_grad():
                 y_prob = self.model.predict(batch, device=device)
-                y_prob = self.accelerator.gather(y_prob)
-                y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk].cpu().numpy().tolist()
-                batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
-                for idx, y_i, label_i in zip(idxs, y, batch_label):
-                    y_pred[idx] = y_pred[idx] | (label_i not in y_i)
-                progress_bar.update(1)
+            y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk]
+            y = self.accelerator.gather(y).cpu().numpy().tolist()
+            batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
+            for idx, y_i, label_i in zip(idxs, y, batch_label):
+                y_pred[idx] = y_pred[idx] | (label_i not in y_i)
+            progress_bar.update(1)
 
         idxs = list(y_pred.keys())
         y_pred = np.array([y_pred[idx] for idx in idxs])
