@@ -60,7 +60,7 @@ class DeepLog(nn.Module):
 
     def predict_class(self, src, top_k=1, device="cpu"):
         del src['label']
-        return torch.topk(self.forward(src, device=device).probabilities, k=top_k, dim=-1)
+        return torch.topk(self.forward(src, device=device).probabilities, k=top_k, dim=-1).indices
 
 
 class LogRobust(nn.Module):
