@@ -157,7 +157,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
 
     print("Loading test dataset\n")
-    data = load_features(test_path, is_unsupervised)
+    data = load_features(test_path, False)
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,
         vocab=vocab,
@@ -166,7 +166,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         semantic=args.semantic,
         quantitative=args.quantitative,
         sequential=args.sequential,
-        is_unsupervised=False,
+        is_unsupervised=is_unsupervised,
         logger=logger
     )
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
