@@ -103,7 +103,6 @@ class Trainer:
                             disable=not self.accelerator.is_local_main_process)
         for epoch in range(self.no_epochs):
             train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
-            print("Validation...")
             val_loss, val_acc = self._valid_epoch(val_loader, device)
             if self.logger is not None:
                 self.logger.info(
