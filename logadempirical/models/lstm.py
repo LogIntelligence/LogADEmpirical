@@ -34,7 +34,10 @@ class DeepLog(nn.Module):
 
     def forward(self, batch, device='cpu'):
         x = batch['sequential']
-        y = batch['label']
+        try:
+            y = batch['label']
+        except KeyError:
+            y = None
         x = self.embedding(x.to(device))
         out, _ = self.lstm(x)
         logits = self.fc(out[:, -1, :])
@@ -52,9 +55,11 @@ class DeepLog(nn.Module):
         self.load_state_dict(torch.load(path))
 
     def predict(self, src, device="cpu"):
+        del src['label']
         return self.forward(src, device=device).probabilities
 
     def predict_class(self, src, top_k=1, device="cpu"):
+        del src['label']
         return torch.topk(self.forward(src, device=device).probabilities, k=top_k, dim=-1)
 
 
@@ -103,7 +108,10 @@ class LogRobust(nn.Module):
 
     def forward(self, batch, device='cpu'):
         x = batch['semantic']
-        y = batch['label']
+        try:
+            y = batch['label']
+        except KeyError:
+            y = None
         inp = x.to(device)
         sequence_length = inp.size(1)
         out, _ = self.lstm(inp)
@@ -123,9 +131,11 @@ class LogRobust(nn.Module):
         self.load_state_dict(torch.load(path))
 
     def predict(self, batch, device="cpu"):
+        del batch['label']
         return self.forward(batch, device=device).probabilities
 
     def predict_class(self, src, device="cpu"):
+        del src['label']
         return torch.argmax(self.forward(src, device=device).probabilities, dim=-1)
 
 
@@ -173,7 +183,10 @@ class LogAnomaly(nn.Module):
             x_sem = batch['semantic'].to(device)
         else:
             x_sem = self.embedding(batch['sequential'].to(device))
-        y = batch['label']
+        try:
+            y = batch['label']
+        except KeyError:
+            y = None
         out0, _ = self.lstm0(x_sem)
         out1, _ = self.lstm1(x_quant)
 
@@ -193,9 +206,11 @@ class LogAnomaly(nn.Module):
         self.load_state_dict(torch.load(path))
 
     def predict(self, batch, device="cpu"):
+        del batch['label']
         return self.forward(batch, device=device).probabilities
 
     def predict_class(self, batch, top_k=1, device="cpu"):
+        del batch['label']
         return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=-1)
 
 

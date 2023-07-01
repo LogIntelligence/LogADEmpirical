@@ -154,8 +154,8 @@ class Trainer:
             del batch['idx']
             # batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
-                y_prob = self.model.predict(batch, device=device)
-            y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk]
+                y = self.model.predict_class(batch, top_k=topk, device=device)
+            # y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk]
             y = self.accelerator.gather(y).cpu().numpy().tolist()
             batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
             for idx, y_i, label_i in zip(idxs, y, batch_label):
