@@ -183,9 +183,9 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir, exist_ok=True)
 
     if args.window_type == "sliding":
-        args.output_dir = f"{args.output_dir}/{args.dataset_name}_W{args.window_size}_S{args.step_size}_C{args.is_chronological}"
+        args.output_dir = f"{args.output_dir}/{args.dataset_name}/sliding/W{args.window_size}_S{args.step_size}_C{args.is_chronological}_train{args.train_size}"
     else:
-        args.output_dir = f"{args.output_dir}/{args.dataset_name}_session_W{args.window_size}_S{args.step_size}"
+        args.output_dir = f"{args.output_dir}/{args.dataset_name}/session/train{args.train_size}"
     train_path, test_path = process_dataset(logger, data_dir=args.data_dir, output_dir=args.output_dir,
                                             log_file=args.log_file,
                                             dataset_name=args.dataset_name, window_type=args.window_type,
