@@ -8,10 +8,18 @@ from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
 from logadempirical.data.feature_extraction import load_features, sliding_window
 from logadempirical.data.dataset import LogDataset
-from logadempirical.helpers import arg_parser, get_loggers, get_optimizer
+from logadempirical.helpers import arg_parser, get_optimizer
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
 from accelerate import Accelerator
+import logging
+from logging import getLogger
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    level=logging.INFO,
+)
 
 accelerator = Accelerator()
 
@@ -179,7 +187,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
 if __name__ == "__main__":
     parser = arg_parser()
     args = parser.parse_args()
-    logger = get_loggers(args.model_name)
+    logger = getLogger(args.model_name)
+    logger.info(accelerator.state)
+    logger.setLevel(logging.INFO if accelerator.is_local_main_process else logging.ERROR)
     os.makedirs(args.output_dir, exist_ok=True)
 
     if args.window_type == "sliding":

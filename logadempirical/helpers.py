@@ -1,8 +1,5 @@
-import os
 from argparse import ArgumentParser
-from accelerate.logging import get_logger
 from torch import optim
-import logging
 
 
 def arg_parser():
@@ -78,11 +75,6 @@ def arg_parser():
     parser.add_argument("--dropout", default=0.1, type=float, help="dropout rate of transformers model")
 
     return parser
-
-
-def get_loggers(model_name):
-    logger = get_logger(model_name, log_level="DEBUG")
-    return logger
 
 
 def get_optimizer(args, model_parameters):
