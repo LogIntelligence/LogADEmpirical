@@ -175,11 +175,11 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
                                                          session_labels,
                                                          topk=args.topk,
-                                                         device=args.device)
+                                                         device=device)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,
-                                                       device=args.device)
+                                                       device=device)
     logger.info(f"Test Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     return acc, f1, pre, rec
 

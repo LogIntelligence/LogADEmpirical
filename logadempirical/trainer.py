@@ -143,7 +143,6 @@ class Trainer:
 
     def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu'):
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-        self.logger.info(device)
         self.model.to(device)
         self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
         self.model.eval()
