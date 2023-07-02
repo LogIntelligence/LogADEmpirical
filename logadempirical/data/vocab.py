@@ -13,23 +13,23 @@ def read_json(filename):
 
 class Vocab(object):
     def __init__(self, logs, emb_file="embeddings.json"):
-        self.pad_index = 0
-        self.pad_token = "padding"
 
         self.stoi = {}
-        self.itos = list(["padding"])
+        self.itos = []
 
-        event_count = Counter()
         for line in logs:
-            for logkey in line:
-                event_count[logkey] += 1
+            self.itos.extend(line)
 
-        for event in event_count.keys():
-            self.itos.append(event)
+        self.itos = list(set(self.itos))
+        self.pad_index = len(self.itos)
+        self.itos.append("padding")
+        self.pad_token = "padding"
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
+        print(self.stoi)
+        print(self.itos)
         self.semantic_vectors = read_json(emb_file)
-        self.semantic_vectors[self.pad_token] = [-1] * len(self.semantic_vectors[self.itos[1]])
+        self.semantic_vectors[self.pad_token] = [-1] * len(self.semantic_vectors[self.itos[0]])
         self.mapping = {}
 
     def __len__(self):
@@ -39,10 +39,10 @@ class Vocab(object):
         event = self.stoi.get(real_event, self.unk_index)
         if not use_similar or event != self.unk_index:
             return event
-        if real_event in self.mapping:
+        if self.mapping.get(real_event) is not None:
             return self.mapping[real_event]
 
-        for train_event in self.itos[1:]:
+        for train_event in self.itos[:-1]:
             sim = dot(self.semantic_vectors[real_event], self.semantic_vectors[train_event]) / (norm(
                 self.semantic_vectors[real_event]) * norm(self.semantic_vectors[train_event]))
             if sim > 0.90:
