@@ -175,7 +175,8 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
                                                          session_labels,
                                                          topk=args.topk,
-                                                         device=device)
+                                                         device=device,
+                                                         unk_idx=vocab.unk_index)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,
