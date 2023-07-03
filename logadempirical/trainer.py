@@ -184,8 +184,10 @@ class Trainer:
 
         idxs = list(y_pred.keys())
         if num_sessions is not None:
-            y_pred = np.array([[y_pred[idx]] * num_sessions[idx] for idx in idxs])
-            y_true = np.array([[y_true[idx]] * num_sessions[idx] for idx in idxs])
+            y_pred = [[y_pred[idx]] * num_sessions[idx] for idx in idxs]
+            y_true = [[y_true[idx]] * num_sessions[idx] for idx in idxs]
+            y_pred = np.array(sum(y_pred, []))
+            y_true = np.array(sum(y_true, []))
         else:
             y_pred = np.array([y_pred[idx] for idx in idxs])
             y_true = np.array([y_true[idx] for idx in idxs])
