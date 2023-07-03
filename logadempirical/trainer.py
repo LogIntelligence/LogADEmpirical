@@ -151,11 +151,7 @@ class Trainer:
         rec = recall_score(y_true, y_pred)
         return acc, f1, pre, rec
 
-    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', unk_idx: int = 0):
-        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-        self.model.to(device)
-        self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
-        self.model.eval()
+    def predict_unsupervised_helper(self, test_loader, y_true, topk: int, device: str = 'cpu'):
         y_pred = {k: 0 for k in y_true.keys()}
         progress_bar = tqdm(total=len(test_loader), desc=f"Predict",
                             disable=not self.accelerator.is_local_main_process)
@@ -163,12 +159,9 @@ class Trainer:
             idxs = self.accelerator.gather(batch['idx']).detach().clone().cpu().numpy().tolist()
             batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
             del batch['idx']
-            # batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
                 y = self.model.predict_class(batch, top_k=topk, device=device)
-            # y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk]
             y = self.accelerator.gather(y).cpu().numpy().tolist()
-            # self.logger.warning(f"{unk_idx}: {unk_idx in y}")
             for idx, y_i, label_i in zip(idxs, y, batch_label):
                 y_pred[idx] = y_pred[idx] | (label_i not in y_i)
             progress_bar.update(1)
@@ -180,7 +173,22 @@ class Trainer:
         f1 = f1_score(y_true, y_pred)
         pre = precision_score(y_true, y_pred)
         rec = recall_score(y_true, y_pred)
+        progress_bar.close()
         return acc, f1, pre, rec
+
+    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', is_valid: bool = False):
+        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        self.model.to(device)
+        self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
+        self.model.eval()
+        if is_valid:
+            topk_acc = []
+            for k in range(1, topk + 1):
+                acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, k, device)
+                topk_acc.append(acc)
+            return acc, np.mean(topk_acc)
+        else:
+            return self.predict_unsupervised_helper(test_loader, y_true, topk, device)
 
     def save_model(self, save_dir: str, model_name: str):
         if not os.path.exists(save_dir):

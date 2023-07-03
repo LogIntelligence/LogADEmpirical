@@ -191,15 +191,18 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                                   save_dir=f"{args.output_dir}/models",
                                                   model_name=args.model_name)
     if is_unsupervised:
-        acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
-                                                         session_labels,
-                                                         topk=args.topk,
-                                                         device=device)
+        acc, _, _, _, topk_acc = trainer.predict_unsupervised(valid_dataset,
+                                                                   session_labels,
+                                                                   topk=args.topk,
+                                                                   device=device,
+                                                                   is_valid=True)
+        logger.info(
+            f"Validation Result:: Acc: {acc:.4f}, Top-{args.topk} Acc: {topk_acc:.4f}")
     else:
         acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
                                                        session_labels,
                                                        device=device)
-    logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+        logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     logger.info(vocab.stoi)
     print("Loading test dataset\n")
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
@@ -219,11 +222,10 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
-        acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
+        acc, f1, pre, rec, _ = trainer.predict_unsupervised(test_dataset,
                                                          session_labels,
                                                          topk=args.topk,
-                                                         device=device,
-                                                         unk_idx=vocab.unk_index)
+                                                         device=device)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,
