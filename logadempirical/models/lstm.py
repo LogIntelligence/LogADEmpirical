@@ -29,7 +29,7 @@ class DeepLog(nn.Module):
                             batch_first=True,
                             bidirectional=False,
                             dropout=dropout)
-        self.fc = nn.Linear(hidden_size, vocab_size)
+        self.fc = nn.Linear(hidden_size, vocab_size - 1)
         self.criterion = criterion
 
     def forward(self, batch, device='cpu'):
@@ -174,7 +174,7 @@ class LogAnomaly(nn.Module):
                              batch_first=True,
                              dropout=dropout,
                              bidirectional=False)
-        self.fc = nn.Linear(2 * hidden_size, self.vocab_size)
+        self.fc = nn.Linear(2 * hidden_size, self.vocab_size - 1)
         self.criterion = criterion
 
     def forward(self, batch, device='cpu'):

@@ -193,10 +193,10 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                                   model_name=args.model_name)
     if is_unsupervised:
         acc, topk_acc = trainer.predict_unsupervised(valid_dataset,
-                                                              session_labels,
-                                                              topk=args.topk,
-                                                              device=device,
-                                                              is_valid=True)
+                                                     session_labels,
+                                                     topk=args.topk,
+                                                     device=device,
+                                                     is_valid=True)
         logger.info(
             f"Validation Result:: Acc: {acc:.4f}, Top-{args.topk} Acc: {topk_acc:.4f}")
     else:
@@ -224,9 +224,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
-                                                            session_labels,
-                                                            topk=args.topk,
-                                                            device=device)
+                                                         session_labels,
+                                                         topk=args.topk,
+                                                         device=device)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,

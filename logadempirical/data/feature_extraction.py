@@ -13,7 +13,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
     data_path: str: Path to pickle file
     is_unsupervised: bool: Whether the model is unsupervised or not
     min_len: int: Minimum length of log sequence
-
+    pad_token: str: Padding token
     Returns
     -------
     logs: List[Tuple[List[str], int]]: List of log sequences
