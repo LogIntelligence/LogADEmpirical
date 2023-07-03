@@ -105,7 +105,7 @@ class Trainer:
             train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
             val_loss, val_acc = self._valid_epoch(val_loader, device)
             if self.logger is not None:
-                self.logger.info(
+                self.logger.debug(
                     f"Epoch {epoch + 1}::Train Loss || {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
             if save_dir is not None and model_name is not None:
                 self.save_model(save_dir, model_name)

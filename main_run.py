@@ -212,7 +212,6 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         logger=logger
     )
 
-    anomaly_count = sum([l == vocab.unk_index for l in labels])
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
