@@ -96,6 +96,7 @@ def build_model(args, vocab_size):
             num_layers=args.num_layers,
             is_bilstm=True,
             n_class=args.n_class,
+            dropout=args.dropout,
             criterion=criterion
         )
     elif args.model_name == "CNN":

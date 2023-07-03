@@ -57,6 +57,8 @@ def log_key2vec(log_template: str, weight: List[float] = None):
             log_template_vec.append(word2vec_model[word] * weight[index])
         except Exception as _:
             pass
+    if len(log_template_vec) == 0:
+        log_template_vec = np.zeros(300)
     return log_template_vec
 
 

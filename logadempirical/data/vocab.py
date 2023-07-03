@@ -26,8 +26,6 @@ class Vocab(object):
         self.pad_token = "padding"
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
-        print(self.stoi)
-        print(self.itos)
         self.semantic_vectors = read_json(emb_file)
         self.semantic_vectors[self.pad_token] = [-1] * len(self.semantic_vectors[self.itos[0]])
         self.mapping = {}

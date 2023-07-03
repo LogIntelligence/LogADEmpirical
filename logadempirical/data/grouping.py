@@ -114,10 +114,10 @@ def time_sliding_window(raw_data, window_size=60, step_size=60):
     n_sess = 0
     for (start_index, end_index) in start_end_index_pair:
         new_data.append({
-            "Label": label_data[start_index:end_index].values,
-            "EventId": logkey_data[start_index: end_index].values,
-            "EventTemplate": log_template_data[start_index: end_index].values,
-            "Content": content_data[start_index: end_index].values,
+            "Label": label_data[start_index:end_index].values.tolist(),
+            "EventId": logkey_data[start_index: end_index].values.tolist(),
+            "EventTemplate": log_template_data[start_index: end_index].values.tolist(),
+            "Content": content_data[start_index: end_index].values.tolist(),
             "SessionId": n_sess
         })
         n_sess += 1
@@ -151,10 +151,10 @@ def fixed_window(raw_data, window_size, step_size):
     n_sess = 0
     for (start_index, end_index) in start_end_index_pair:
         new_data.append({
-            "Label": label_data[start_index:end_index].values,
-            "EventId": logkey_data[start_index: end_index].values,
-            "EventTemplate": log_template_data[start_index: end_index].values,
-            "Content": content_data[start_index: end_index].values,
+            "Label": label_data[start_index:end_index].values.tolist(),
+            "EventId": logkey_data[start_index: end_index].values.tolist(),
+            "EventTemplate": log_template_data[start_index: end_index].values.tolist(),
+            "Content": content_data[start_index: end_index].values.tolist(),
             "SessionId": n_sess
         })
         n_sess += 1

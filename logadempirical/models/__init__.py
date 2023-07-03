@@ -31,7 +31,8 @@ def get_model(model_name: str, config: ModelConfig):
             vocab_size=config.vocab_size,
             embedding_dim=config.embedding_dim,
             dropout=config.dropout,
-            criterion=config.criterion
+            criterion=config.criterion,
+            use_semantic=config.use_semantic
         )
     elif model_name == 'CNN':
         model = CNN(
