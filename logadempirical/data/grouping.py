@@ -72,7 +72,7 @@ def time_sliding_window(raw_data, window_size=60, step_size=60):
     log_size = raw_data.shape[0]
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
     # print(label_data[:10])
-    logkey_data, deltaT_data, log_template_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
+    logkey_data, log_template_data, content_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
     new_data = []
     start_end_index_pair = set()
 
@@ -91,7 +91,6 @@ def time_sliding_window(raw_data, window_size=60, step_size=60):
     start_end_index_pair.add(tuple([start_index, end_index]))
 
     # move the start and end index until next sliding window
-    num_session = 1
     while end_index < log_size:
         start_time = start_time + step_size
         end_time = start_time + window_size
@@ -112,52 +111,42 @@ def time_sliding_window(raw_data, window_size=60, step_size=60):
         if start_index != end_index:
             start_end_index_pair.add(tuple([start_index, end_index]))
 
-        num_session += 1
-        if num_session % 1000 == 0:
-            print("process {} time window".format(num_session), end='\r')
-
+    n_sess = 0
     for (start_index, end_index) in start_end_index_pair:
-        dt = deltaT_data[start_index: end_index].values
-        dt[0] = 0
-        new_data.append([
-            time_data[start_index: end_index].values,
-            label_data[start_index:end_index],
-            logkey_data[start_index: end_index].values,
-            dt,
-            log_template_data[start_index: end_index]
-        ])
+        new_data.append({
+            "Label": label_data[start_index:end_index].values,
+            "EventId": logkey_data[start_index: end_index].values,
+            "EventTemplate": log_template_data[start_index: end_index].values,
+            "Content": content_data[start_index: end_index].values,
+            "SessionId": n_sess
+        })
+        n_sess += 1
 
     assert len(start_end_index_pair) == len(new_data)
-    print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
-    return pd.DataFrame(new_data, columns=raw_data.columns)
+    # print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
+    return new_data
 
 
 def fixed_window(raw_data, window_size, step_size):
     """
     split logs into sliding windows/session
-    :param raw_data: dataframe columns=[timestamp, label, eventid, time duration]
+    :param raw_data: dataframe columns=[timestamp, label, eventid, eventtemplate, content]
     :param window_size: number of events in a window
     :param step_size: number of events to move forward
-    :return: dataframe columns=[eventids, time durations, label]
+    :return: dataframe columns=[eventids, eventtemplates, content, label]
     """
     log_size = raw_data.shape[0]
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
     # print(label_data[:10])
-    logkey_data, deltaT_data, log_template_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
-    content_data = raw_data.iloc[:, 5]
+    logkey_data, log_template_data, content_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
     new_data = []
     start_end_index_pair = set()
 
     start_index = 0
-    num_session = 0
-    print(log_size)
     while start_index < log_size:
         end_index = min(start_index + window_size, log_size)
         start_end_index_pair.add(tuple([start_index, end_index]))
         start_index = start_index + step_size
-        num_session += 1
-        if num_session % 1000 == 0:
-            print("process {} time window".format(num_session), end='\r')
 
     n_sess = 0
     for (start_index, end_index) in start_end_index_pair:
@@ -165,14 +154,14 @@ def fixed_window(raw_data, window_size, step_size):
             "Label": label_data[start_index:end_index].values,
             "EventId": logkey_data[start_index: end_index].values,
             "EventTemplate": log_template_data[start_index: end_index].values,
-            "Seq": content_data[start_index: end_index].values,
+            "Content": content_data[start_index: end_index].values,
             "SessionId": n_sess
         })
         n_sess += 1
 
     assert len(start_end_index_pair) == len(new_data)
-    print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
-    return pd.DataFrame(new_data)
+    # print('there are %d instances (sliding windows) in this dataset\n' % len(start_end_index_pair))
+    return new_data
 
 
 def _custom_resampler(array_like):

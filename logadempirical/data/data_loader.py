@@ -42,7 +42,7 @@ def process_dataset(logger: Logger,
     df = pd.read_csv(f'{data_dir}/{log_file}_structured.csv')
 
     # build log sequences
-    if window_type == "fixed":
+    if window_type == "sliding":
         df["Label"] = df["Label"].apply(lambda x: int(x != "-"))
         n_train = int(len(df) * train_size)
         if session_type == "entry":
@@ -57,21 +57,21 @@ def process_dataset(logger: Logger,
                 window_size=window_size,
                 step_size=step_size
             )
-            window_df = shuffle(window_df).reset_index(drop=True)
+            window_df = shuffle(window_df)
             n_train = int(len(window_df) * train_size)
-            train_window = window_df.iloc[:n_train, :].to_dict("records")
-            test_window = window_df.iloc[n_train:, :].to_dict("records")
+            train_window = window_df[:n_train]
+            test_window = window_df[n_train:]
         else:
             train_window = sliding(
-                df[["Label", "EventId", "EventTemplate", "Content"]].iloc[:n_train, :],
+                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[:n_train, :],
                 window_size=window_size,
                 step_size=step_size
-            ).to_dict("records")
+            )
             test_window = sliding(
-                df[["Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(drop=True),
+                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(drop=True),
                 window_size=window_size,
                 step_size=step_size
-            ).to_dict("records")
+            )
 
     elif window_type == "session":
         if dataset_name == "HDFS":

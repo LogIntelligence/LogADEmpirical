@@ -88,7 +88,7 @@ def get_optimizer(args, model_parameters):
         optimizer = optim.SGD(model_parameters,
                               lr=args.lr,
                               momentum=args.optim_momentum,
-                              weight_decay=args.weight_decays)
+                              weight_decay=args.weight_decay)
     elif args.optimizer == 'adamw':
         optimizer = optim.AdamW(model_parameters,
                                 lr=args.lr,
