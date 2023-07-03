@@ -192,7 +192,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                                   save_dir=f"{args.output_dir}/models",
                                                   model_name=args.model_name)
     if is_unsupervised:
-        acc, _, _, _, topk_acc = trainer.predict_unsupervised(valid_dataset,
+        acc, topk_acc = trainer.predict_unsupervised(valid_dataset,
                                                               session_labels,
                                                               topk=args.topk,
                                                               device=device,
