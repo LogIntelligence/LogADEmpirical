@@ -185,17 +185,17 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         accelerator=accelerator
     )
 
-    # trainer.train(device=device, save_dir=f"{args.output_dir}/models", model_name=args.model_name)
-    # if is_unsupervised:
-    #     acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
-    #                                                      session_labels,
-    #                                                      topk=args.topk,
-    #                                                      device=device)
-    # else:
-    #     acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
-    #                                                    session_labels,
-    #                                                    device=device)
-    # logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+    trainer.train(device=device, save_dir=f"{args.output_dir}/models", model_name=args.model_name)
+    if is_unsupervised:
+        acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
+                                                         session_labels,
+                                                         topk=args.topk,
+                                                         device=device)
+    else:
+        acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
+                                                       session_labels,
+                                                       device=device)
+    logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     logger.info(vocab.stoi)
     print("Loading test dataset\n")
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
