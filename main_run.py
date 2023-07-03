@@ -209,12 +209,15 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
     logger.info(f"Test data statistics: {stat}")
     label_dict = {}
-    counter = Counter()
+    counter = {}
     for (s, l) in data:
         label_dict[s] = l
-        counter.update(l)
+        try:
+            counter[tuple(l)] += 1
+        except:
+            counter[tuple(l)] = 1
     data = [(k, v) for k, v in label_dict.items()]
-    num_sessions = [counter[k] for k, _ in data]
+    num_sessions = [counter[tuple(k)] for k, _ in data]
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,
         vocab=vocab,
