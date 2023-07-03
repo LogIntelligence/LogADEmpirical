@@ -185,6 +185,7 @@ class Trainer:
         idxs = list(y_pred.keys())
         self.logger.info(f"Computing metrics...")
         if num_sessions is not None:
+            self.logger.info(f"Total sessions: {sum(num_sessions)}")
             y_pred = [[y_pred[idx]] * num_sessions[idx] for idx in idxs]
             y_true = [[y_true[idx]] * num_sessions[idx] for idx in idxs]
             y_pred = np.array(sum(y_pred, []))
