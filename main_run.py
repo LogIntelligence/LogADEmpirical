@@ -211,12 +211,12 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     label_dict = {}
     counter = {}
     for (s, l) in data:
-        label_dict[s] = l
+        label_dict[tuple(s)] = l
         try:
-            counter[tuple(l)] += 1
-        except:
-            counter[tuple(l)] = 1
-    data = [(k, v) for k, v in label_dict.items()]
+            counter[tuple(s)] += 1
+        except Exception:
+            counter[tuple(s)] = 1
+    data = [(list(k), v) for k, v in label_dict.items()]
     num_sessions = [counter[tuple(k)] for k, _ in data]
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,
