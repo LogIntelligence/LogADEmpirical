@@ -183,8 +183,12 @@ class Trainer:
             progress_bar.update(1)
 
         idxs = list(y_pred.keys())
-        y_pred = np.array([[y_pred[idx]] * num_sessions[idx] for idx in idxs])
-        y_true = np.array([[y_true[idx]] * num_sessions[idx] for idx in idxs])
+        if num_sessions is not None:
+            y_pred = np.array([[y_pred[idx]] * num_sessions[idx] for idx in idxs])
+            y_true = np.array([[y_true[idx]] * num_sessions[idx] for idx in idxs])
+        else:
+            y_pred = np.array([y_pred[idx] for idx in idxs])
+            y_true = np.array([y_true[idx] for idx in idxs])
         acc = accuracy_score(y_true, y_pred)
         f1 = f1_score(y_true, y_pred)
         pre = precision_score(y_true, y_pred)
