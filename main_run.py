@@ -213,10 +213,13 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     #     logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     print("Loading test dataset\n")
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
-    data = [[vocab.get_event(k) for k in x[0]] for x in data]
-    with open('test.txt', mode='w') as f:
+    data = [([vocab.get_event(k) for k in x[0]], x[1]) for x in data]
+    with open('test_normal.txt', mode='w') as f:
         for line in data:
-            f.write(' '.join([str(x) for x in line]) + '\n')
+            f.write(' '.join([str(x[0]) for x in line if x[1] == 0]) + '\n')
+    with open('test_abnormal.txt', mode='w') as f:
+        for line in data:
+            f.write(' '.join([str(x[0]) for x in line if x[1] == 1]) + '\n')
     # logger.info(f"Test data statistics: {stat}")
     # sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
     #     data,
