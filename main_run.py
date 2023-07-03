@@ -14,6 +14,7 @@ from logadempirical.trainer import Trainer
 from accelerate import Accelerator
 import logging
 from logging import getLogger
+import numpy as np
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -43,7 +44,7 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=Fa
         with open(train_path, 'rb') as f:
             data = pickle.load(f)
         if is_unsupervised:
-            logs = [x['EventTemplate'] for x in data if x['Label'] == 0]
+            logs = [x['EventTemplate'] for x in data if np.max(x['Label']) == 0]
         else:
             logs = [x['EventTemplate'] for x in data]
         vocab = Vocab(logs, os.path.join(data_dir, embeddings))
@@ -185,7 +186,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         accelerator=accelerator
     )
 
-    trainer.train(device=device, save_dir=f"{args.output_dir}/models", model_name=args.model_name)
+    train_loss, val_loss, val_acc = trainer.train(device=device,
+                                                  save_dir=f"{args.output_dir}/models",
+                                                  model_name=args.model_name)
     if is_unsupervised:
         acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
                                                          session_labels,

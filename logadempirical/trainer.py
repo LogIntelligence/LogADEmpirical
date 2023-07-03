@@ -101,15 +101,25 @@ class Trainer:
         )
         progress_bar = tqdm(range(num_training_steps), desc=f"Training",
                             disable=not self.accelerator.is_local_main_process)
+        total_train_loss = 0
+        total_val_loss = 0
+        total_val_acc = 0
         for epoch in range(self.no_epochs):
             train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
             val_loss, val_acc = self._valid_epoch(val_loader, device)
             if self.logger is not None:
                 self.logger.debug(
-                    f"Epoch {epoch + 1}::Train Loss || {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
+                    f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
+            total_train_loss += train_loss
+            total_val_loss += val_loss
+            total_val_acc += val_acc
             if save_dir is not None and model_name is not None:
                 self.save_model(save_dir, model_name)
         self.save_model(save_dir, model_name)
+        if self.logger is not None:
+            self.logger.info(f"Train Loss: {total_train_loss / self.no_epochs:.4f} - "
+                             f"Val Loss: {total_val_loss / self.no_epochs:.4f} - "
+                             f"Val Acc: {total_val_acc / self.no_epochs:.4f}")
         return train_loss, val_loss, val_acc
 
     def predict_supervised(self, dataset, y_true, device: str = 'cpu'):
