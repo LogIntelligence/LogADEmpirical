@@ -1,6 +1,8 @@
 from collections import Counter
 import pickle
 import json
+
+import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
@@ -12,7 +14,7 @@ def read_json(filename):
 
 
 class Vocab(object):
-    def __init__(self, logs, emb_file="embeddings.json"):
+    def __init__(self, logs, emb_file="embeddings.json", embedding_dim=100):
 
         self.stoi = {}
         self.itos = []
@@ -27,7 +29,9 @@ class Vocab(object):
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
         self.semantic_vectors = read_json(emb_file)
-        self.semantic_vectors[self.pad_token] = [-1] * len(self.semantic_vectors[self.itos[0]])
+        self.semantic_vectors = {k: v if v != np.NaN else [0] * embedding_dim
+                                 for k, v in self.semantic_vectors.items()}
+        self.semantic_vectors[self.pad_token] = [-1] * embedding_dim
         self.mapping = {}
 
     def __len__(self):

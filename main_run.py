@@ -25,7 +25,7 @@ logging.basicConfig(
 accelerator = Accelerator()
 
 
-def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
+def build_vocab(vocab_path, data_dir, train_path, embeddings, embedding_dim=300, is_unsupervised=False):
     """
     Build vocab from training data
     Parameters
@@ -34,6 +34,7 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=Fa
     data_dir: str: Path to data directory
     train_path: str: Path to training data
     embeddings: str: Path to pretrained embeddings
+    embedding_dim: int: Dimension of embeddings
     is_unsupervised: bool: Whether the model is unsupervised or not
 
     Returns
@@ -47,7 +48,7 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=Fa
             logs = [x['EventTemplate'] for x in data if np.max(x['Label']) == 0]
         else:
             logs = [x['EventTemplate'] for x in data]
-        vocab = Vocab(logs, os.path.join(data_dir, embeddings))
+        vocab = Vocab(logs, os.path.join(data_dir, embeddings), embedding_dim=embedding_dim)
         logger.info(f"Vocab size: {len(vocab)}")
         logger.info(f"Save vocab in {vocab_path}")
         vocab.save_vocab(vocab_path)
@@ -192,10 +193,10 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                                   model_name=args.model_name)
     if is_unsupervised:
         acc, _, _, _, topk_acc = trainer.predict_unsupervised(valid_dataset,
-                                                                   session_labels,
-                                                                   topk=args.topk,
-                                                                   device=device,
-                                                                   is_valid=True)
+                                                              session_labels,
+                                                              topk=args.topk,
+                                                              device=device,
+                                                              is_valid=True)
         logger.info(
             f"Validation Result:: Acc: {acc:.4f}, Top-{args.topk} Acc: {topk_acc:.4f}")
     else:
@@ -223,9 +224,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
         acc, f1, pre, rec, _ = trainer.predict_unsupervised(test_dataset,
-                                                         session_labels,
-                                                         topk=args.topk,
-                                                         device=device)
+                                                            session_labels,
+                                                            topk=args.topk,
+                                                            device=device)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,
@@ -256,7 +257,12 @@ if __name__ == "__main__":
     os.makedirs(f"{args.output_dir}/vocabs", exist_ok=True)
     vocab_path = f"{args.output_dir}/vocabs/{args.model_name}.pkl"
     is_unsupervised = args.model_name in ["LogAnomaly", "DeepLog"]
-    log_vocab = build_vocab(vocab_path, args.data_dir, train_path, args.embeddings, is_unsupervised=is_unsupervised)
+    log_vocab = build_vocab(vocab_path,
+                            args.data_dir,
+                            train_path,
+                            args.embeddings,
+                            embedding_dim=args.embedding_dim,
+                            is_unsupervised=is_unsupervised)
     model = build_model(args, vocab_size=len(log_vocab))
     print(model)
     run(args, train_path, test_path, log_vocab, model, is_unsupervised=is_unsupervised)

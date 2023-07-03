@@ -4,8 +4,6 @@ from tqdm import tqdm
 from typing import List, Tuple, Optional, Any
 import numpy as np
 
-REQUIRE_MIN_LEN = 5
-
 
 def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding'):
     """
@@ -26,8 +24,6 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
-            if len(seq['EventTemplate']) < REQUIRE_MIN_LEN:
-                continue
             seq['EventTemplate'] = [pad_token] * (min_len - 1) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = max(seq['Label'].tolist())
@@ -42,10 +38,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
-            if len(seq['EventTemplate']) < REQUIRE_MIN_LEN:
-                continue
             if len(seq['EventTemplate']) < min_len:
-                seq['EventTemplate'] = [pad_token] * (min_len - 1) + seq['EventTemplate']
+                seq['EventTemplate'] = [pad_token] * (min_len - len(seq['EventTemplate'])) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = seq['Label'].tolist()
                 if max(label) > 0:
