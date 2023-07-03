@@ -216,10 +216,12 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     data = [([vocab.get_event(k) for k in x[0]], x[1]) for x in data]
     with open('test_normal.txt', mode='w') as f:
         for line in data:
-            f.write(' '.join([str(x[0]) for x in line if x[1] == 0]) + '\n')
+            if line[1] == 0:
+                f.write(' '.join([str(x) for x in line[0]]) + '\n')
     with open('test_abnormal.txt', mode='w') as f:
         for line in data:
-            f.write(' '.join([str(x[0]) for x in line if x[1] == 1]) + '\n')
+            if line[1] == 1:
+                f.write(' '.join([str(x) for x in line[0]]) + '\n')
     # logger.info(f"Test data statistics: {stat}")
     # sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
     #     data,
