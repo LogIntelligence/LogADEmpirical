@@ -181,8 +181,9 @@ class Trainer:
             for idx, y_i, label_i in zip(idxs, y, batch_label):
                 y_pred[idx] = y_pred[idx] | (label_i not in y_i)
             progress_bar.update(1)
-
+        progress_bar.close()
         idxs = list(y_pred.keys())
+        self.logger.info(f"Computing metrics...")
         if num_sessions is not None:
             y_pred = [[y_pred[idx]] * num_sessions[idx] for idx in idxs]
             y_true = [[y_true[idx]] * num_sessions[idx] for idx in idxs]
