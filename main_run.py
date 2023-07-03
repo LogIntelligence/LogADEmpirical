@@ -1,5 +1,6 @@
 import os
 import pickle
+from collections import Counter
 
 import torch
 from sklearn.utils import shuffle
@@ -207,6 +208,13 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     print("Loading test dataset\n")
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
     logger.info(f"Test data statistics: {stat}")
+    label_dict = {}
+    counter = Counter()
+    for (s, l) in data:
+        label_dict[s] = l
+        counter.update(l)
+    data = [(k, v) for k, v in label_dict.items()]
+    num_sessions = [counter[k] for k, _ in data]
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,
         vocab=vocab,
@@ -225,7 +233,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
                                                          session_labels,
                                                          topk=args.topk,
-                                                         device=device)
+                                                         device=device,
+                                                         is_valid=False,
+                                                         num_sessions=num_sessions)
     else:
         acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
                                                        session_labels,

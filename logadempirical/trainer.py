@@ -7,7 +7,7 @@ import os
 from transformers import get_scheduler
 import torch
 from torch.utils.data import DataLoader
-from typing import Any
+from typing import Any, Optional, List
 import logging
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
@@ -151,7 +151,23 @@ class Trainer:
         rec = recall_score(y_true, y_pred)
         return acc, f1, pre, rec
 
-    def predict_unsupervised_helper(self, test_loader, y_true, topk: int, device: str = 'cpu'):
+    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', is_valid: bool = False,
+                             num_sessions: Optional[List[int]] = None):
+        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        self.model.to(device)
+        self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
+        self.model.eval()
+        if is_valid:
+            topk_acc = []
+            for k in range(1, topk + 1):
+                acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, k, device)
+                topk_acc.append(acc)
+            return acc, np.mean(topk_acc)
+        else:
+            return self.predict_unsupervised_helper(test_loader, y_true, topk, device, num_sessions)
+
+    def predict_unsupervised_helper(self, test_loader, y_true, topk: int, device: str = 'cpu',
+                                    num_sessions: Optional[List[int]] = None):
         y_pred = {k: 0 for k in y_true.keys()}
         progress_bar = tqdm(total=len(test_loader), desc=f"Predict",
                             disable=not self.accelerator.is_local_main_process)
@@ -167,28 +183,14 @@ class Trainer:
             progress_bar.update(1)
 
         idxs = list(y_pred.keys())
-        y_pred = np.array([y_pred[idx] for idx in idxs])
-        y_true = np.array([y_true[idx] for idx in idxs])
+        y_pred = np.array([[y_pred[idx]] * num_sessions[idx] for idx in idxs])
+        y_true = np.array([[y_true[idx]] * num_sessions[idx] for idx in idxs])
         acc = accuracy_score(y_true, y_pred)
         f1 = f1_score(y_true, y_pred)
         pre = precision_score(y_true, y_pred)
         rec = recall_score(y_true, y_pred)
         progress_bar.close()
         return acc, f1, pre, rec
-
-    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', is_valid: bool = False):
-        test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
-        self.model.to(device)
-        self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
-        self.model.eval()
-        if is_valid:
-            topk_acc = []
-            for k in range(1, topk + 1):
-                acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, k, device)
-                topk_acc.append(acc)
-            return acc, np.mean(topk_acc)
-        else:
-            return self.predict_unsupervised_helper(test_loader, y_true, topk, device)
 
     def save_model(self, save_dir: str, model_name: str):
         if not os.path.exists(save_dir):

@@ -24,7 +24,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
-            seq['EventTemplate'] = [pad_token] * min_len + seq['EventTemplate']
+            seq['EventTemplate'] = seq['EventTemplate'] + [pad_token] * (min_len - len(seq['EventTemplate']) + 1)
             if not isinstance(seq['Label'], int):
                 label = max(seq['Label'])
             else:
@@ -92,12 +92,9 @@ def sliding_window(data: List[Tuple[List[str], int]],
         seq_len = max(window_size, len(line))
         line = [vocab.pad_token] * (seq_len - len(line)) + line
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
-        check = False
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
                 label = vocab.get_event(line[i + window_size])
-                if label is vocab.unk_index:
-                    check = True
             else:
                 if not isinstance(labels, int):
                     label = max(labels[i: i + window_size])
