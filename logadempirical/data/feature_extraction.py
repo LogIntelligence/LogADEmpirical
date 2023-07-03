@@ -121,7 +121,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
                 for key in log_counter:
                     try:
                         quantitative_pattern[key] = log_counter[key]
-                    except Exception:
+                    except Exception as _:
                         pass  # ignore unseen events or padding key
 
             sequence = {'sequential': sequential_pattern}
