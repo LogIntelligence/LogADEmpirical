@@ -44,7 +44,7 @@ class DeepLog(nn.Module):
         probabilities = torch.softmax(logits, dim=-1)
         loss = None
         if y is not None and self.criterion is not None:
-            loss = self.criterion(logits.view(-1, self.vocab_size), y.view(-1).to(device))
+            loss = self.criterion(logits.view(-1), y.view(-1).to(device))
 
         return ModelOutput(logits=logits, probabilities=probabilities, loss=loss, embeddings=out[:, -1, :])
 
@@ -195,7 +195,7 @@ class LogAnomaly(nn.Module):
         probabilities = torch.softmax(logits, dim=-1)
         loss = None
         if y is not None and self.criterion is not None:
-            loss = self.criterion(logits.view(-1, self.vocab_size), y.view(-1).to(device))
+            loss = self.criterion(logits.view(-1), y.view(-1).to(device))
 
         return ModelOutput(logits=logits, probabilities=probabilities, loss=loss, embeddings=multi_out)
 
