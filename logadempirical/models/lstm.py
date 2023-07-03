@@ -211,7 +211,7 @@ class LogAnomaly(nn.Module):
 
     def predict_class(self, batch, top_k=1, device="cpu"):
         del batch['label']
-        return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=-1)
+        return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=-1).indices
 
 
 if __name__ == '__main__':
