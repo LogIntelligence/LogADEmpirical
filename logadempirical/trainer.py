@@ -158,7 +158,7 @@ class Trainer:
                 y = self.model.predict_class(batch, top_k=topk, device=device)
             # y = torch.argsort(y_prob, dim=1, descending=True)[:, :topk]
             y = self.accelerator.gather(y).cpu().numpy().tolist()
-            self.logger.warning(f"{unk_idx}: {unk_idx in y}")
+            # self.logger.warning(f"{unk_idx}: {unk_idx in y}")
             for idx, y_i, label_i in zip(idxs, y, batch_label):
                 y_pred[idx] = y_pred[idx] | (label_i not in y_i)
             progress_bar.update(1)

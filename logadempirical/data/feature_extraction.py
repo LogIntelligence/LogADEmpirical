@@ -1,31 +1,52 @@
 from collections import Counter
 import pickle
-import numpy as np
-from numpy import ndarray
 from tqdm import tqdm
-from typing import List, Tuple, Optional, Any, Union, Dict
+from typing import List, Tuple, Optional, Any
+import numpy as np
+
+REQUIRE_MIN_LEN = 5
 
 
-def load_features(data_path, is_unsupervised=True, min_len=0):
+def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding'):
+    """
+    Load features from pickle file
+    Parameters
+    ----------
+    data_path: str: Path to pickle file
+    is_unsupervised: bool: Whether the model is unsupervised or not
+    min_len: int: Minimum length of log sequence
+
+    Returns
+    -------
+    logs: List[Tuple[List[str], int]]: List of log sequences
+    """
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
     if is_unsupervised:
         logs = []
+        no_abnormal = 0
         for seq in data:
-            if len(seq['EventTemplate']) < min_len:
+            if len(seq['EventTemplate']) < REQUIRE_MIN_LEN:
                 continue
+            if len(seq['EventTemplate']) <= min_len:
+                seq['EventTemplate'] = [pad_token] * (min_len - len(seq['EventTemplate']) + 1) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = max(seq['Label'].tolist())
             else:
                 label = seq['Label']
             if label == 0:
                 logs.append((seq['EventTemplate'], label))
+            else:
+                no_abnormal += 1
+        print("Number of abnormal sessions:", no_abnormal)
     else:
         logs = []
         no_abnormal = 0
         for seq in data:
-            if len(seq['EventTemplate']) < min_len:
+            if len(seq['EventTemplate']) < REQUIRE_MIN_LEN:
                 continue
+            if len(seq['EventTemplate']) < min_len:
+                seq['EventTemplate'] = [pad_token] * (min_len - len(seq['EventTemplate']) + 1) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = seq['Label'].tolist()
                 if max(label) > 0:
@@ -36,7 +57,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0):
                     no_abnormal += 1
             logs.append((seq['EventTemplate'], label))
         print("Number of abnormal sessions:", no_abnormal)
-    return logs
+    logs_len = [len(log[0]) for log in logs]
+    return logs, {"min": min(logs_len), "max": max(logs_len), "mean": np.mean(logs_len)}
 
 
 def sliding_window(data: List[Tuple[List[str], int]],
@@ -49,8 +71,27 @@ def sliding_window(data: List[Tuple[List[str], int]],
                    semantic: bool = False,
                    logger: Optional[Any] = None,
                    ) -> Any:
+    """
+    Sliding window for log sequence
+    Parameters
+    ----------
+    data: List[Tuple[List[str], int]]: List of log sequences
+    window_size: int: Size of sliding window
+    is_train: bool: training mode or not
+    vocab: Optional[Any]: Vocabulary
+    is_unsupervised: bool: Whether the model is unsupervised or not
+    sequential: bool: Whether to use sequential features
+    quantitative: bool: Whether to use quantitative features
+    semantic: bool: Whether to use semantic features
+    logger: Optional[Any]: Logger
+
+    Returns
+    -------
+    lists of sequential, quantitative, semantic features, and labels
+    """
     log_sequences = []
     session_labels = {}
+    unique_ab_events = set()
 
     for idx, (templates, labels) in tqdm(enumerate(data), total=len(data),
                                          desc=f"Sliding window with size {window_size}"):
@@ -58,9 +99,12 @@ def sliding_window(data: List[Tuple[List[str], int]],
         seq_len = max(window_size, len(line))
         line = [vocab.pad_token] * (seq_len - len(line)) + line
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
+        check = False
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
                 label = vocab.get_event(line[i + window_size])
+                if label is vocab.unk_index:
+                    check = True
             else:
                 if not isinstance(labels, int):
                     label = max(labels[i: i + window_size])
@@ -80,7 +124,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
                         quantitative_pattern[key] = log_counter[key]
                     except KeyError:
                         pass  # ignore unseen events or padding key
-                # quantitative_pattern = np.array(quantitative_pattern)[:, np.newaxis]
+
             sequence = {'sequential': sequential_pattern}
             if quantitative:
                 sequence['quantitative'] = quantitative_pattern
@@ -111,5 +155,8 @@ def sliding_window(data: List[Tuple[List[str], int]],
     if not is_unsupervised:
         logger.info(f"Number of normal sequence: {len(labels) - sum(labels)}")
         logger.info(f"Number of abnormal sequence: {sum(labels)}")
+
+    logger.warning(f"Number of unique abnormal events: {len(unique_ab_events)}")
+    logger.info(f"Number of abnormal sessions: {sum(session_labels.values())}/{len(session_labels)}")
 
     return sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels

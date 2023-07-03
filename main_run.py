@@ -25,6 +25,20 @@ accelerator = Accelerator()
 
 
 def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=False):
+    """
+    Build vocab from training data
+    Parameters
+    ----------
+    vocab_path: str: Path to save vocab
+    data_dir: str: Path to data directory
+    train_path: str: Path to training data
+    embeddings: str: Path to pretrained embeddings
+    is_unsupervised: bool: Whether the model is unsupervised or not
+
+    Returns
+    -------
+    vocab: Vocab: Vocabulary
+    """
     if not os.path.exists(vocab_path):
         with open(train_path, 'rb') as f:
             data = pickle.load(f)
@@ -43,6 +57,17 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, is_unsupervised=Fa
 
 
 def build_model(args, vocab_size):
+    """
+    Build model
+    Parameters
+    ----------
+    args: argparse.Namespace: Arguments
+    vocab_size: int: Size of vocabulary
+
+    Returns
+    -------
+
+    """
     criterion = torch.nn.CrossEntropyLoss()
     if args.model_name == "DeepLog":
         model_config = ModelConfig(
@@ -90,8 +115,24 @@ def build_model(args, vocab_size):
 
 
 def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
+    """
+    Run model
+    Parameters
+    ----------
+    args: argparse.Namespace: Arguments
+    train_path: str: Path to training data
+    test_path: str: Path to test data
+    vocab: Vocab: Vocabulary
+    model: torch.nn.Module: Model
+    is_unsupervised: bool: Whether the model is unsupervised or not
+
+    Returns
+    -------
+    Accuracy metrics
+    """
     print("Loading train dataset\n")
-    data = load_features(train_path, is_unsupervised)
+    data, stat = load_features(train_path, is_unsupervised, min_len=args.history_size, pad_token=vocab.pad_token)
+    logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
     n_valid = int(len(data) * args.valid_ratio)
     train_data, valid_data = data[:-n_valid], data[-n_valid:]
@@ -144,20 +185,21 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         accelerator=accelerator
     )
 
-    trainer.train(device=device, save_dir=args.output_dir, model_name=args.model_name)
-    if is_unsupervised:
-        acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
-                                                         session_labels,
-                                                         topk=args.topk,
-                                                         device=device)
-    else:
-        acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
-                                                       session_labels,
-                                                       device=device)
-    logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
-
+    # trainer.train(device=device, save_dir=f"{args.output_dir}/models", model_name=args.model_name)
+    # if is_unsupervised:
+    #     acc, f1, pre, rec = trainer.predict_unsupervised(valid_dataset,
+    #                                                      session_labels,
+    #                                                      topk=args.topk,
+    #                                                      device=device)
+    # else:
+    #     acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
+    #                                                    session_labels,
+    #                                                    device=device)
+    # logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+    logger.info(vocab.stoi)
     print("Loading test dataset\n")
-    data = load_features(test_path, False)
+    data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
+    logger.info(f"Test data statistics: {stat}")
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,
         vocab=vocab,
@@ -169,6 +211,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         is_unsupervised=is_unsupervised,
         logger=logger
     )
+
+    anomaly_count = sum([l == vocab.unk_index for l in labels])
+    logger.warning(f"Anomaly count in test dataset: {anomaly_count}")
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
