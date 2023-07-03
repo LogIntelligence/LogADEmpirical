@@ -223,7 +223,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
-        acc, f1, pre, rec, _ = trainer.predict_unsupervised(test_dataset,
+        acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
                                                             session_labels,
                                                             topk=args.topk,
                                                             device=device)
