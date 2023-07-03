@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from typing import Any, Optional, List
 import logging
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from itertools import chain
 
 
 class Trainer:
@@ -188,8 +189,9 @@ class Trainer:
             self.logger.info(f"Total sessions: {sum(num_sessions)}")
             y_pred = [[y_pred[idx]] * num_sessions[idx] for idx in idxs]
             y_true = [[y_true[idx]] * num_sessions[idx] for idx in idxs]
-            y_pred = np.array(sum(y_pred, []))
-            y_true = np.array(sum(y_true, []))
+            y_pred = np.array(list(chain.from_iterable(y_pred)))
+            y_true = np.array(list(chain.from_iterable(y_true)))
+            self.logger.info(f"Total sessions: {len(y_pred)}")
         else:
             y_pred = np.array([y_pred[idx] for idx in idxs])
             y_true = np.array([y_true[idx] for idx in idxs])
