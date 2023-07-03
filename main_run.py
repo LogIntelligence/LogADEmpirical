@@ -135,104 +135,114 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     """
     print("Loading train dataset\n")
     data, stat = load_features(train_path, is_unsupervised, min_len=args.history_size, pad_token=vocab.pad_token)
+    data = [[vocab.get_event(k) for k in x[0]] for x in data]
     logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
     n_valid = int(len(data) * args.valid_ratio)
     train_data, valid_data = data[:-n_valid], data[-n_valid:]
+    with open('train.txt', mode='w') as f:
+        for line in train_data:
+            f.write(' '.join([str(x) for x in line]) + '\n')
+    with open('valid.txt', mode='w') as f:
+        for line in valid_data:
+            f.write(' '.join([str(x) for x in line]) + '\n')
+    #
+    # sequentials, quantitatives, semantics, labels, idxs, _ = sliding_window(
+    #     train_data,
+    #     vocab=vocab,
+    #     window_size=args.history_size,
+    #     is_train=True,
+    #     semantic=args.semantic,
+    #     quantitative=args.quantitative,
+    #     sequential=args.sequential,
+    #     is_unsupervised=is_unsupervised,
+    #     logger=logger
+    # )
+    # train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
+    # sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
+    #     valid_data,
+    #     vocab=vocab,
+    #     window_size=args.history_size,
+    #     is_train=False,
+    #     semantic=args.semantic,
+    #     quantitative=args.quantitative,
+    #     sequential=args.sequential,
+    #     is_unsupervised=is_unsupervised,
+    #     logger=logger
+    # )
+    # valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+    # logger.info(f"Train dataset: {len(train_dataset)}")
+    # logger.info(f"Valid dataset: {len(valid_dataset)}")
+    # optimizer = get_optimizer(args, model.parameters())
+    #
+    # device = accelerator.device
+    # model = model.to(device)
+    #
+    # logger.info(f"Start training {args.model_name} model on {device} device")
+    #
+    # trainer = Trainer(
+    #     model,
+    #     train_dataset=train_dataset,
+    #     valid_dataset=valid_dataset,
+    #     is_train=True,
+    #     optimizer=optimizer,
+    #     no_epochs=args.max_epoch,
+    #     batch_size=args.batch_size,
+    #     scheduler_type=args.scheduler,
+    #     warmup_rate=args.warmup_rate,
+    #     accumulation_step=args.accumulation_step,
+    #     logger=logger,
+    #     accelerator=accelerator
+    # )
 
-    sequentials, quantitatives, semantics, labels, idxs, _ = sliding_window(
-        train_data,
-        vocab=vocab,
-        window_size=args.history_size,
-        is_train=True,
-        semantic=args.semantic,
-        quantitative=args.quantitative,
-        sequential=args.sequential,
-        is_unsupervised=is_unsupervised,
-        logger=logger
-    )
-    train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
-    sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
-        valid_data,
-        vocab=vocab,
-        window_size=args.history_size,
-        is_train=False,
-        semantic=args.semantic,
-        quantitative=args.quantitative,
-        sequential=args.sequential,
-        is_unsupervised=is_unsupervised,
-        logger=logger
-    )
-    valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
-    logger.info(f"Train dataset: {len(train_dataset)}")
-    logger.info(f"Valid dataset: {len(valid_dataset)}")
-    optimizer = get_optimizer(args, model.parameters())
-
-    device = accelerator.device
-    model = model.to(device)
-
-    logger.info(f"Start training {args.model_name} model on {device} device")
-
-    trainer = Trainer(
-        model,
-        train_dataset=train_dataset,
-        valid_dataset=valid_dataset,
-        is_train=True,
-        optimizer=optimizer,
-        no_epochs=args.max_epoch,
-        batch_size=args.batch_size,
-        scheduler_type=args.scheduler,
-        warmup_rate=args.warmup_rate,
-        accumulation_step=args.accumulation_step,
-        logger=logger,
-        accelerator=accelerator
-    )
-
-    train_loss, val_loss, val_acc = trainer.train(device=device,
-                                                  save_dir=f"{args.output_dir}/models",
-                                                  model_name=args.model_name)
-    if is_unsupervised:
-        acc, topk_acc = trainer.predict_unsupervised(valid_dataset,
-                                                     session_labels,
-                                                     topk=args.topk,
-                                                     device=device,
-                                                     is_valid=True)
-        logger.info(
-            f"Validation Result:: Acc: {acc:.4f}, Top-{args.topk} Acc: {topk_acc:.4f}")
-    else:
-        acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
-                                                       session_labels,
-                                                       device=device)
-        logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
-    logger.info(vocab.stoi)
+    # train_loss, val_loss, val_acc = trainer.train(device=device,
+    #                                               save_dir=f"{args.output_dir}/models",
+    #                                               model_name=args.model_name)
+    # if is_unsupervised:
+    #     acc, topk_acc = trainer.predict_unsupervised(valid_dataset,
+    #                                                  session_labels,
+    #                                                  topk=args.topk,
+    #                                                  device=device,
+    #                                                  is_valid=True)
+    #     logger.info(
+    #         f"Validation Result:: Acc: {acc:.4f}, Top-{args.topk} Acc: {topk_acc:.4f}")
+    # else:
+    #     acc, f1, pre, rec = trainer.predict_supervised(valid_dataset,
+    #                                                    session_labels,
+    #                                                    device=device)
+    #     logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     print("Loading test dataset\n")
     data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token)
-    logger.info(f"Test data statistics: {stat}")
-    sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
-        data,
-        vocab=vocab,
-        window_size=args.history_size,
-        is_train=False,
-        semantic=args.semantic,
-        quantitative=args.quantitative,
-        sequential=args.sequential,
-        is_unsupervised=is_unsupervised,
-        logger=logger
-    )
-
-    test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
-    logger.info(f"Test dataset: {len(test_dataset)}")
-    if is_unsupervised:
-        acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
-                                                         session_labels,
-                                                         topk=args.topk,
-                                                         device=device)
-    else:
-        acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
-                                                       session_labels,
-                                                       device=device)
-    logger.info(f"Test Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
-    return acc, f1, pre, rec
+    data = [[vocab.get_event(k) for k in x[0]] for x in data]
+    with open('test.txt', mode='w') as f:
+        for line in data:
+            f.write(' '.join([str(x) for x in line]) + '\n')
+    # logger.info(f"Test data statistics: {stat}")
+    # sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
+    #     data,
+    #     vocab=vocab,
+    #     window_size=args.history_size,
+    #     is_train=False,
+    #     semantic=args.semantic,
+    #     quantitative=args.quantitative,
+    #     sequential=args.sequential,
+    #     is_unsupervised=is_unsupervised,
+    #     logger=logger
+    # )
+    #
+    # test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+    # logger.info(f"Test dataset: {len(test_dataset)}")
+    # if is_unsupervised:
+    #     acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
+    #                                                      session_labels,
+    #                                                      topk=args.topk,
+    #                                                      device=device)
+    # else:
+    #     acc, f1, pre, rec = trainer.predict_supervised(test_dataset,
+    #                                                    session_labels,
+    #                                                    device=device)
+    # logger.info(f"Test Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+    # return acc, f1, pre, rec
 
 
 if __name__ == "__main__":
