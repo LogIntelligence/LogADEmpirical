@@ -135,7 +135,11 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     Accuracy metrics
     """
     print("Loading train dataset\n")
-    data, stat = load_features(train_path, is_unsupervised, min_len=args.history_size, pad_token=vocab.pad_token)
+    data, stat = load_features(train_path,
+                               is_unsupervised=is_unsupervised,
+                               min_len=args.history_size,
+                               pad_token=vocab.pad_token,
+                               is_train=True)
     logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
     n_valid = int(len(data) * args.valid_ratio)
@@ -206,7 +210,11 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                                        device=device)
         logger.info(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     print("Loading test dataset\n")
-    data, stat = load_features(test_path, False, min_len=args.history_size, pad_token=vocab.pad_token, is_train=False)
+    data, stat = load_features(test_path,
+                               is_unsupervised=is_unsupervised,
+                               min_len=args.history_size,
+                               pad_token=vocab.pad_token,
+                               is_train=False)
     logger.info(f"Test data statistics: {stat}")
     label_dict = {}
     counter = {}
