@@ -162,7 +162,9 @@ class Trainer:
                 with torch.no_grad():
                     y_prob = self.model.predict(batch, device=device)
                 y_pred = torch.argsort(y_prob, dim=1, descending=True)[:, :]
+                print('y_pred:', y_pred.shape, '; label:', label.shape, label.unsqueeze(1).shape)
                 y_pos = torch.where(y_pred == label.unsqueeze(1))[1]
+                print('y_pos:', y_pos.shape)
                 y_topk.extend(y_pos.cpu().numpy().tolist())
             return np.mean(y_topk), np.std(y_topk), np.min(y_topk), np.max(y_topk), np.median(y_topk)
 
