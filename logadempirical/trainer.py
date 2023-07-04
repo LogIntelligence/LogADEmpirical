@@ -7,7 +7,7 @@ import os
 from transformers import get_scheduler
 import torch
 from torch.utils.data import DataLoader
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Union, Tuple
 import logging
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 from itertools import chain
@@ -152,8 +152,13 @@ class Trainer:
         rec = recall_score(y_true, y_pred)
         return acc, f1, pre, rec
 
-    def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', is_valid: bool = False,
-                             num_sessions: Optional[List[int]] = None):
+    def predict_unsupervised(self,
+                             dataset,
+                             y_true, topk: int,
+                             device: str = 'cpu',
+                             is_valid: bool = False,
+                             num_sessions: Optional[List[int]] = None
+                             ) -> Union[Tuple[float, float, float, float], Tuple[float, int]]:
         def find_topk(dataloader):
             y_topk = []
             for batch in dataloader:
@@ -163,25 +168,24 @@ class Trainer:
                     y_prob = self.model.predict(batch, device=device)
                 y_pred = torch.argsort(y_prob, dim=1, descending=True)[:, :]
                 print('y_pred:', y_pred.shape, '; label:', label.shape, label.unsqueeze(1).shape)
-                y_pos = torch.where(y_pred == label.unsqueeze(1))[1]
+                y_pos = torch.where(y_pred == label.unsqueeze(1))[1] + 1
                 print('y_pos:', y_pos.shape)
                 y_topk.extend(y_pos.cpu().numpy().tolist())
-            return np.mean(y_topk), np.std(y_topk), np.min(y_topk), np.max(y_topk), np.median(y_topk)
+            return int(np.percentile(y_topk, 0.9))
 
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
         self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
         self.model.eval()
         if is_valid:
-            topk_acc = []
             acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, topk, device)
             self.logger.info(find_topk(test_loader))
-            return acc, np.mean(topk_acc)
+            return acc, find_topk(test_loader)
         else:
             return self.predict_unsupervised_helper(test_loader, y_true, topk, device, num_sessions)
 
     def predict_unsupervised_helper(self, test_loader, y_true, topk: int, device: str = 'cpu',
-                                    num_sessions: Optional[List[int]] = None):
+                                    num_sessions: Optional[List[int]] = None) -> Tuple[float, float, float, float]:
         y_pred = {k: 0 for k in y_true.keys()}
         progress_bar = tqdm(total=len(test_loader), desc=f"Predict",
                             disable=not self.accelerator.is_local_main_process)
