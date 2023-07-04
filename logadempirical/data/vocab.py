@@ -5,6 +5,7 @@ import json
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
+import math
 
 
 def read_json(filename):
@@ -29,7 +30,7 @@ class Vocab(object):
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
         self.semantic_vectors = read_json(emb_file)
-        self.semantic_vectors = {k: v if v != np.NaN else [0] * embedding_dim
+        self.semantic_vectors = {k: v if type(v) is list else [0] * embedding_dim
                                  for k, v in self.semantic_vectors.items()}
         self.semantic_vectors[self.pad_token] = [-1] * embedding_dim
         self.mapping = {}
