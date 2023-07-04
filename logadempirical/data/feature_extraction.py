@@ -58,6 +58,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
+            if len(seq['EventTemplate']) <= min_len:
+                continue
             seq['EventTemplate'] = seq['EventTemplate'] + [pad_token] * (
                     min_len - len(seq['EventTemplate']) + is_unsupervised)
             if not isinstance(seq['Label'], int):

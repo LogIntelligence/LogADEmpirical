@@ -42,6 +42,21 @@ pip install -r requirements.txt
 ### III. Usage
 
 #### 1. Data Preparation
+##### 1.1. Datasets
+
+We use datasets collected by LogPAI for evaluation. The datasets are available at [loghub](https://github.com/logpai/loghub).
+The details of datasets is shown as belows:
+
+| **Dataset**  | **Size** | **# Logs**  | **# Anomalies** | **Anomaly Ratio** |
+|:-------------|:---------|:------------|:----------------|:------------------|
+| HDFS         | 1.5  GB  | 11,1 75,629 | 16,8 38         | 2.93%             |
+| BGL          | 743 MB   | 4,747,963   | 348,460         | 7.34 %            |
+| Thunderbird  | 1.4 GB   | 10,000,000  | 4,934           | 0.49%             |
+| Spirit       | 1.4 GB   | 5,000,000   | 764,500         | 15.29%            |
+
+##### 1.2. Parsing
+
+
 
 #### 2. Training
 
