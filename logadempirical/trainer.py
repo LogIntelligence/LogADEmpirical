@@ -154,15 +154,26 @@ class Trainer:
 
     def predict_unsupervised(self, dataset, y_true, topk: int, device: str = 'cpu', is_valid: bool = False,
                              num_sessions: Optional[List[int]] = None):
+        def find_topk(dataloader):
+            y_topk = []
+            for batch in dataloader:
+                # batch = {k: v.to(device) for k, v in batch.items()}
+                label = self.accelerator.gather(batch['label'])
+                with torch.no_grad():
+                    y_prob = self.model.predict(batch, device=device)
+                y_pred = torch.argsort(y_prob, dim=1, descending=True)[:, :]
+                y_pos = torch.where(y_pred == label.unsqueeze(1))[1]
+                y_topk.extend(y_pos.cpu().numpy().tolist())
+            return np.mean(y_topk), np.std(y_topk), np.min(y_topk), np.max(y_topk), np.median(y_topk)
+
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
         self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
         self.model.eval()
         if is_valid:
             topk_acc = []
-            for k in range(1, topk + 1):
-                acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, k, device)
-                topk_acc.append(acc)
+            acc, _, _, _ = self.predict_unsupervised_helper(test_loader, y_true, topk, device)
+            self.logger.info(find_topk(test_loader))
             return acc, np.mean(topk_acc)
         else:
             return self.predict_unsupervised_helper(test_loader, y_true, topk, device, num_sessions)
