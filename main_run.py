@@ -76,7 +76,7 @@ def build_model(args, vocab_size):
     -------
 
     """
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=vocab_size)
     if args.model_name == "DeepLog":
         model_config = ModelConfig(
             num_layers=args.num_layers,
@@ -164,7 +164,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
 
     print("*" * 20)
-    
+
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         valid_data,
         vocab=vocab,
