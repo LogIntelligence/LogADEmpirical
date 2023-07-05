@@ -62,73 +62,26 @@ The details of datasets is shown as belows:
 #### 1.2. Parsing
 
 We use log parsers from [logparser](https://github.com/logpai/logparser) to parse raw logs.
-We use AEL, Spell, Drain, and IPLoM for our experiments. The configuration for each parser is shown as belows:
+We use AEL, Spell, Drain, and IPLoM for our experiments.
+The configuration for each parser used in our experiments can be found [here](docs/PARSING.md).
 
-- Log format for each dataset:
-```yaml
-'HDFS': {
-  'log_format': '<Date> <Time> <Pid> <Level> <Component>: <Content>',
-  'regex': [ r'blk_-?\d+', r'(\d+\.){ 3 }\d+(:\d+)?' ]
-}
+#### 1.3. Embedding
+For a fair comparison, we use the same fastText-based embedding method for all models.
+Use the following command to generate embeddings for log templates:
 
-'BGL': {
-  'log_format': '<Label> <Timestamp> <Date> <Node> <Time> <NodeRepeat> <Type> <Component> <Level> <Content>',
-  'regex': [ r'core\.\d+' ]
-}
+```shell
+$ cd dataset
 
-'Thunderbird': {
-  'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Component>(\[<PID>\])?: <Content>',
-  'regex': [ r'(\d+\.){ 3 }\d+' ]
-}
+# download fastText word2vec model
+$ wget https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip & unzip crawl-300d-2M.vec.zip
 
-'Spirit': {
-  'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Content>',
-  'regex': [ r'(\d+\.){ 3 }\d+', r'(\/.*?\.[ \S: ]+)' ],
-}
-
-```
-- Configuration for each parser:
-```yaml
-"""AEL"""
-'HDFS': {
-  'minEventCount': 2,
-  'merge_percent': 0.5
-}
-'BGL': {
-  'minEventCount': 2,
-  'merge_percent': 0.5
-}
-'Thunderbird': {
-  'minEventCount': 2,
-  'merge_percent': 0.4
-}
-'Spirit': {
-  'minEventCount': 2,
-  'merge_percent': 0.4
-}
-
-"""Spell"""
-'HDFS': {
-  'tau': 0.7
-}
-'BGL': {
-  'tau': 0.75
-}
-'Thunderbird': {
-  'tau': 0.5
-}
-'Spirit': {
-  'tau': 0.5
-}
-
+# generate embeddings for log templates
+$ python generate_embeddings.py <dataset> <strategy>
+# where <dataset> is one of {HDFS, BGL, Thunderbird, or Spirit}
+# and <strategy> is one of {average or tfidf}
 ```
 
-#### 2. Training
-
-```
-```
-
-#### 3. Testing
+### 2. Training and Testing
 
 ```
 ```
