@@ -14,18 +14,18 @@ This repository provides the implementation of recent log-based anomaly detectio
 
 ### I. Studied Models
 
-| Model                        | Paper                                                                                                                                          |
-|:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
-| **Unsupervised**             |                                                                                                                                                |
-| DeepLog (CCS '17)            | [DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning](https://dl.acm.org/doi/abs/10.1145/3133956.3134015)          |
-| LogAnomaly (IJCAI '19)       | [LogAnomaly: Unsupervised Detection of Sequential and Quantitative Anomalies in Unstructured Logs](https://www.ijcai.org/proceedings/2019/658) |
-| LogBERT (IJCNN '21) (coming) | [LogBERT: Log Anomaly Detection via BERT](https://ieeexplore.ieee.org/abstract/document/9534113)                                               |
-| **Semi-supervised**          |                                                                                                                                                |
-| PLELog (ICSE '21)            | [Semi-Supervised Log-Based Anomaly Detection via Probabilistic Label Estimation](https://ieeexplore.ieee.org/document/9401970/)                |
-| **Supervised**               |                                                                                                                                                |
-| CNN (DSAC '18)               | [Detecting Anomaly in Big Data System Logs Using Convolutional Neural Network](https://ieeexplore.ieee.org/document/8511880)                   |
-| LogRobust (ESEC/FSE '19)     | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931)                                      |
-| NeuralLog (ASE '21) (coming) | [Log-based Anomaly Detection Without Log Parsing](https://ieeexplore.ieee.org/document/9678773)                                                |
+| Model                                      | Paper                                                                                                                                          |
+|:-------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Unsupervised**                           |                                                                                                                                                |
+| DeepLog (CCS '17)                          | [DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning](https://dl.acm.org/doi/abs/10.1145/3133956.3134015)          |
+| LogAnomaly (IJCAI '19)                     | [LogAnomaly: Unsupervised Detection of Sequential and Quantitative Anomalies in Unstructured Logs](https://www.ijcai.org/proceedings/2019/658) |
+| LogBERT (IJCNN '21) (coming)               | [LogBERT: Log Anomaly Detection via BERT](https://ieeexplore.ieee.org/abstract/document/9534113)                                               |
+| **Semi-supervised**                        |                                                                                                                                                |
+| PLELog (ICSE '21)                          | [Semi-Supervised Log-Based Anomaly Detection via Probabilistic Label Estimation](https://ieeexplore.ieee.org/document/9401970/)                |
+| **Supervised**                             |                                                                                                                                                |
+| CNN (DSAC '18)                             | [Detecting Anomaly in Big Data System Logs Using Convolutional Neural Network](https://ieeexplore.ieee.org/document/8511880)                   |
+| LogRobust (ESEC/FSE '19)                   | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931)                                      |
+| NeuralLog (ASE '21) (coming)               | [Log-based Anomaly Detection Without Log Parsing](https://ieeexplore.ieee.org/document/9678773)                                                |
 
 ### II. Requirements
 
@@ -42,9 +42,14 @@ pip install -r requirements.txt
 ### III. Usage
 
 #### 1. Data Preparation
+
+Raw and preprocessed datasets (including parsed logs and their embeddings) are available
+at https://zenodo.org/record/8115559.
+
 ##### 1.1. Datasets
 
-We use datasets collected by LogPAI for evaluation. The datasets are available at [loghub](https://github.com/logpai/loghub).
+We use datasets collected by LogPAI for evaluation. The datasets are available
+at [loghub](https://github.com/logpai/loghub).
 The details of datasets is shown as belows:
 
 | **Dataset**  | **Size** | **# Logs**  | **# Anomalies** | **Anomaly Ratio** |
@@ -56,7 +61,36 @@ The details of datasets is shown as belows:
 
 ##### 1.2. Parsing
 
+We use log parsers from [logparser](https://github.com/logpai/logparser) to parse raw logs.
+We use AEL, Spell, Drain, and IPLoM for our experiments. The configuration for each parser is shown as belows:
 
+```yaml
+# AEL
+'HDFS': {
+    'log_format': '<Date> <Time> <Pid> <Level> <Component>: <Content>',
+    'regex': [r'blk_-?\d+', r'(\d+\.){3}\d+(:\d+)?'],
+    'minEventCount': 2,
+    'merge_percent': 0.5
+}
+'BGL': {
+    'log_format': '<Label> <Timestamp> <Date> <Node> <Time> <NodeRepeat> <Type> <Component> <Level> <Content>',
+    'regex': [r'core\.\d+'],
+    'minEventCount': 2,
+    'merge_percent' : 0.5
+}
+'Thunderbird': {
+    'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Component>(\[<PID>\])?: <Content>',
+    'regex': [r'(\d+\.){3}\d+'],
+    'minEventCount': 2,
+    'merge_percent' : 0.4
+}
+'Spirit': {
+    'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Content>',
+    'regex': [r'(\d+\.){3}\d+', r'(\/.*?\.[\S:]+)'],
+    'minEventCount': 2,
+    'merge_percent' : 0.4
+}
+```
 
 #### 2. Training
 
