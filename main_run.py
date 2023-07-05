@@ -225,6 +225,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         except Exception:
             counter[tuple(s)] = 1
     data = [(list(k), v) for k, v in label_dict.items()]
+
     num_sessions = [counter[tuple(k)] for k, _ in data]
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         data,

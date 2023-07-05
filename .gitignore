@@ -166,3 +166,4 @@ dmypy.json
 untitled8.py
 test.txt
 *.txt
+*.ipynb

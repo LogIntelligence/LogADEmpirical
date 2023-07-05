@@ -68,7 +68,8 @@ def process_dataset(logger: Logger,
                 step_size=step_size
             )
             test_window = sliding(
-                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(drop=True),
+                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(
+                    drop=True),
                 window_size=window_size,
                 step_size=step_size
             )
@@ -91,6 +92,8 @@ def process_dataset(logger: Logger,
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
+        else:
+            raise NotImplementedError(f"{dataset_name} with {window_type} is not implemented")
     else:
         raise NotImplementedError(f"{window_type} is not implemented")
 
