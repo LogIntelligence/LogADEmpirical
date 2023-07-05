@@ -88,7 +88,7 @@ def process_dataset(logger: Logger,
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
         elif dataset_name == "BGL":
-            df["NodeId"] = df["Node"].apply(lambda x: str(x).split(":")[0])
+            # df["NodeId"] = df["Node"].apply(lambda x: str(x).split(":")[0])
             window_df = session_window_bgl(df)
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]
