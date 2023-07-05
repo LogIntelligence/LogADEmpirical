@@ -1,4 +1,4 @@
-## Log-based Anomaly Detection with Deep Learning: How Far Are We?
+# Log-based Anomaly Detection with Deep Learning: How Far Are We?
 
 **Abstract**: Software-intensive systems produce logs for troubleshooting purposes. Recently, many deep learning models
 have been proposed to automatically detect system anomalies based on log data. These models typically claim very high
@@ -12,7 +12,7 @@ The problem of log-based anomaly detection has not been solved yet. Based on our
 future work.
 This repository provides the implementation of recent log-based anomaly detection methods.
 
-### I. Studied Models
+## I. Studied Models
 
 | Model                                      | Paper                                                                                                                                          |
 |:-------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
@@ -27,7 +27,7 @@ This repository provides the implementation of recent log-based anomaly detectio
 | LogRobust (ESEC/FSE '19)                   | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931)                                      |
 | NeuralLog (ASE '21) (coming)               | [Log-based Anomaly Detection Without Log Parsing](https://ieeexplore.ieee.org/document/9678773)                                                |
 
-### II. Requirements
+## II. Requirements
 
 - Python 3
 - NVIDIA GPU + CUDA cuDNN
@@ -39,14 +39,14 @@ The required packages are listed in requirements.txt. Install:
 pip install -r requirements.txt
 ```
 
-### III. Usage
+## III. Usage
 
-#### 1. Data Preparation
+### 1. Data Preparation
 
 Raw and preprocessed datasets (including parsed logs and their embeddings) are available
 at https://zenodo.org/record/8115559.
 
-##### 1.1. Datasets
+#### 1.1. Datasets
 
 We use datasets collected by LogPAI for evaluation. The datasets are available
 at [loghub](https://github.com/logpai/loghub).
@@ -59,7 +59,7 @@ The details of datasets is shown as belows:
 | Thunderbird  | 1.4 GB   | 10,000,000  | 4,934           | 0.49%             |
 | Spirit       | 1.4 GB   | 5,000,000   | 764,500         | 15.29%            |
 
-##### 1.2. Parsing
+#### 1.2. Parsing
 
 We use log parsers from [logparser](https://github.com/logpai/logparser) to parse raw logs.
 We use AEL, Spell, Drain, and IPLoM for our experiments. The configuration for each parser is shown as belows:
