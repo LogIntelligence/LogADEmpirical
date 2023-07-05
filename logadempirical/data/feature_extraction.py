@@ -26,8 +26,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
             logs = []
             no_abnormal = 0
             for seq in data:
-                if len(seq['EventTemplate']) < min_len:
-                    continue
+                # if len(seq['EventTemplate']) < min_len:
+                #     continue
                 if not isinstance(seq['Label'], int):
                     label = max(seq['Label'])
                 else:
@@ -41,8 +41,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
             logs = []
             no_abnormal = 0
             for seq in data:
-                if len(seq['EventTemplate']) < min_len:
-                    continue
+                # if len(seq['EventTemplate']) < min_len:
+                #     continue
                 if not isinstance(seq['Label'], int):
                     label = seq['Label']
                     if max(label) > 0:
@@ -57,8 +57,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
-            if len(seq['EventTemplate']) < min_len:
-                continue
+            # if len(seq['EventTemplate']) < min_len:
+            #     continue
             if not isinstance(seq['Label'], int):
                 label = seq['Label']
                 if max(label) > 0:
