@@ -39,7 +39,7 @@ def session_window_bgl(raw_data):
     raw_data = raw_data.to_dict("records")
 
     for idx, row in tqdm(enumerate(raw_data)):
-        node_id = row['Node']
+        node_id = row['NodeId']
         label = 1 if row["Label"] != "-" else 0
         if node_id not in data_dict.keys():
             data_dict[node_id] = {}
