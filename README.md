@@ -64,32 +64,63 @@ The details of datasets is shown as belows:
 We use log parsers from [logparser](https://github.com/logpai/logparser) to parse raw logs.
 We use AEL, Spell, Drain, and IPLoM for our experiments. The configuration for each parser is shown as belows:
 
+- Log format for each dataset:
 ```yaml
-# AEL
 'HDFS': {
-    'log_format': '<Date> <Time> <Pid> <Level> <Component>: <Content>',
-    'regex': [r'blk_-?\d+', r'(\d+\.){3}\d+(:\d+)?'],
-    'minEventCount': 2,
-    'merge_percent': 0.5
+  'log_format': '<Date> <Time> <Pid> <Level> <Component>: <Content>',
+  'regex': [ r'blk_-?\d+', r'(\d+\.){ 3 }\d+(:\d+)?' ]
+}
+
+'BGL': {
+  'log_format': '<Label> <Timestamp> <Date> <Node> <Time> <NodeRepeat> <Type> <Component> <Level> <Content>',
+  'regex': [ r'core\.\d+' ]
+}
+
+'Thunderbird': {
+  'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Component>(\[<PID>\])?: <Content>',
+  'regex': [ r'(\d+\.){ 3 }\d+' ]
+}
+
+'Spirit': {
+  'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Content>',
+  'regex': [ r'(\d+\.){ 3 }\d+', r'(\/.*?\.[ \S: ]+)' ],
+}
+
+```
+- Configuration for each parser:
+```yaml
+"""AEL"""
+'HDFS': {
+  'minEventCount': 2,
+  'merge_percent': 0.5
 }
 'BGL': {
-    'log_format': '<Label> <Timestamp> <Date> <Node> <Time> <NodeRepeat> <Type> <Component> <Level> <Content>',
-    'regex': [r'core\.\d+'],
-    'minEventCount': 2,
-    'merge_percent' : 0.5
+  'minEventCount': 2,
+  'merge_percent': 0.5
 }
 'Thunderbird': {
-    'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Component>(\[<PID>\])?: <Content>',
-    'regex': [r'(\d+\.){3}\d+'],
-    'minEventCount': 2,
-    'merge_percent' : 0.4
+  'minEventCount': 2,
+  'merge_percent': 0.4
 }
 'Spirit': {
-    'log_format': '<Label> <Timestamp> <Date> <User> <Month> <Day> <Time> <Location> <Content>',
-    'regex': [r'(\d+\.){3}\d+', r'(\/.*?\.[\S:]+)'],
-    'minEventCount': 2,
-    'merge_percent' : 0.4
+  'minEventCount': 2,
+  'merge_percent': 0.4
 }
+
+"""Spell"""
+'HDFS': {
+  'tau': 0.7
+}
+'BGL': {
+  'tau': 0.75
+}
+'Thunderbird': {
+  'tau': 0.5
+}
+'Spirit': {
+  'tau': 0.5
+}
+
 ```
 
 #### 2. Training

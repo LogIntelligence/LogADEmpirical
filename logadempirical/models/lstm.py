@@ -20,7 +20,7 @@ class DeepLog(nn.Module):
         self.embedding_dim = embedding_dim
         self.vocab_size = vocab_size
         self.embedding = nn.Embedding(vocab_size + 1, self.embedding_dim)
-        torch.nn.init.uniform_(self.embedding.weight)
+        torch.nn.init.zeros_(self.embedding.weight)
         self.embedding.weight.requires_grad = True
 
         self.lstm = nn.LSTM(input_size=self.embedding_dim,
