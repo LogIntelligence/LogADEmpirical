@@ -21,7 +21,6 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
     """
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
-        data = [seq for seq in data if len(seq['EventTemplate']) >= min_len]
     if is_train:
         if is_unsupervised:
             logs = []
@@ -54,6 +53,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
+            seq['EventTemplate'] = [pad_token] * (min_len - 1 + is_unsupervised) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = seq['Label']
                 if max(label) > 0:
