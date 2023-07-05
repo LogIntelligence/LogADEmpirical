@@ -14,18 +14,18 @@ This repository provides the implementation of recent log-based anomaly detectio
 
 ### I. Studied Models
 
-| Model                    | Paper                                                                                                                                          |
-|:-------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
-| **Unsupervised**         |                                                                                                                                                |
-| DeepLog (CCS '17)        | [DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning](https://dl.acm.org/doi/abs/10.1145/3133956.3134015)          |
-| LogAnomaly (IJCAI '19)   | [LogAnomaly: Unsupervised Detection of Sequential and Quantitative Anomalies in Unstructured Logs](https://www.ijcai.org/proceedings/2019/658) |
-| LogBERT (IJCNN '21)      | [LogBERT: Log Anomaly Detection via BERT](https://ieeexplore.ieee.org/abstract/document/9534113)                                               |
-| **Semi-supervised**      |                                                                                                                                                |
-| PLELog (ICSE '21)        | [Semi-Supervised Log-Based Anomaly Detection via Probabilistic Label Estimation](https://ieeexplore.ieee.org/document/9401970/)                |
-| **Supervised**           |                                                                                                                                                |
-| CNN (DSAC '18)           | [Detecting Anomaly in Big Data System Logs Using Convolutional Neural Network](https://ieeexplore.ieee.org/document/8511880)                   |
-| LogRobust (ESEC/FSE '19) | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931)                                      |
-| NeuralLog (ASE '21)      | [Log-based Anomaly Detection Without Log Parsing](https://ieeexplore.ieee.org/document/9678773)                                                |
+| Model                        | Paper                                                                                                                                          |
+|:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Unsupervised**             |                                                                                                                                                |
+| DeepLog (CCS '17)            | [DeepLog: Anomaly Detection and Diagnosis from System Logs through Deep Learning](https://dl.acm.org/doi/abs/10.1145/3133956.3134015)          |
+| LogAnomaly (IJCAI '19)       | [LogAnomaly: Unsupervised Detection of Sequential and Quantitative Anomalies in Unstructured Logs](https://www.ijcai.org/proceedings/2019/658) |
+| LogBERT (IJCNN '21) (coming) | [LogBERT: Log Anomaly Detection via BERT](https://ieeexplore.ieee.org/abstract/document/9534113)                                               |
+| **Semi-supervised**          |                                                                                                                                                |
+| PLELog (ICSE '21)            | [Semi-Supervised Log-Based Anomaly Detection via Probabilistic Label Estimation](https://ieeexplore.ieee.org/document/9401970/)                |
+| **Supervised**               |                                                                                                                                                |
+| CNN (DSAC '18)               | [Detecting Anomaly in Big Data System Logs Using Convolutional Neural Network](https://ieeexplore.ieee.org/document/8511880)                   |
+| LogRobust (ESEC/FSE '19)     | [Robust log-based anomaly detection on unstable log data](https://dl.acm.org/doi/10.1145/3338906.3338931)                                      |
+| NeuralLog (ASE '21) (coming) | [Log-based Anomaly Detection Without Log Parsing](https://ieeexplore.ieee.org/document/9678773)                                                |
 
 ### II. Requirements
 
