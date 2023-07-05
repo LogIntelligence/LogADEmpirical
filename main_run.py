@@ -147,6 +147,10 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                is_train=True)
     logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
+    normal_data = [len(x[0]) for x in data if np.max(x[1]) == 0]
+    abnormal_data = [len(x[0]) for x in data if np.max(x[1]) == 1]
+    print(f"Normal data: {np.max(normal_data)} - {np.min(normal_data)} - {np.mean(normal_data)}")
+    print(f"Abnormal data: {np.max(abnormal_data)} - {np.min(abnormal_data)} - {np.mean(abnormal_data)}")
     n_valid = int(len(data) * args.valid_ratio)
     train_data, valid_data = data[:-n_valid], data[-n_valid:]
 
