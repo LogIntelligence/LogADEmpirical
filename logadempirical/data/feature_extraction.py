@@ -26,6 +26,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
             logs = []
             no_abnormal = 0
             for seq in data:
+                seq['EventTemplate'] = [pad_token] * min_len + seq['EventTemplate']
                 if not isinstance(seq['Label'], int):
                     label = max(seq['Label'])
                 else:
@@ -39,6 +40,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
             logs = []
             no_abnormal = 0
             for seq in data:
+                seq['EventTemplate'] = [pad_token] * (min_len - 1) + seq['EventTemplate']
                 if not isinstance(seq['Label'], int):
                     label = seq['Label']
                     if max(label) > 0:
@@ -53,6 +55,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
         logs = []
         no_abnormal = 0
         for seq in data:
+            seq['EventTemplate'] = [pad_token] * (min_len - (not is_unsupervised)) + seq['EventTemplate']
             if not isinstance(seq['Label'], int):
                 label = seq['Label']
                 if max(label) > 0:
@@ -102,7 +105,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
     for idx, (templates, labels) in tqdm(enumerate(data), total=len(data),
                                          desc=f"Sliding window with size {window_size}"):
         line = list(templates)
-        line = [vocab.pad_token] * (window_size - len(line) + is_unsupervised) + line
+        # line = [vocab.pad_token] * (window_size - len(line) + is_unsupervised) + line
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
