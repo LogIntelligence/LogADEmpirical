@@ -58,6 +58,7 @@ def session_window_bgl(raw_data):
         results.append({"SessionId": k, "EventId": v["EventId"], "EventTemplate": v["EventTemplate"],
                         "Content": v["Content"], "Label": label_dict[k]})
     results = shuffle(results)
+    print("there are %d sessions in this dataset" % len(results))
     return results
 
 
