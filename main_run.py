@@ -50,7 +50,7 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, embedding_dim=300,
             for seq in data:
                 if type(seq['Label']) == list:
                     logs.append([e for e, l in zip(seq['EventTemplate'], seq['Label']) if l == 0])
-                else:
+                elif seq['Label'] == 0:
                     logs.append(seq['EventTemplate'])
         else:
             logs = [x['EventTemplate'] for x in data]
