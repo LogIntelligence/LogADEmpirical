@@ -109,10 +109,11 @@ def sliding_window(data: List[Tuple[List[str], int]],
                                          desc=f"Sliding window with size {window_size}"):
         line = list(templates)
         line = [vocab.pad_token] * (window_size - len(line) + is_unsupervised) + line
+        labels = [0] * (window_size - len(labels) + is_unsupervised) + labels
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
-                if is_train and np.max(labels[i: i + window_size]) > 0:
+                if is_train and np.max(labels[i: i + window_size + 1]) > 0:
                     continue
                 label = vocab.get_event(line[i + window_size])
             else:
