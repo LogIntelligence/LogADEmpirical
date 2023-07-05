@@ -162,6 +162,9 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
         logger=logger
     )
     train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
+
+    print("*" * 20)
+    
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         valid_data,
         vocab=vocab,
