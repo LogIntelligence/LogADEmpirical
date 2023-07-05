@@ -121,6 +121,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
                 label = vocab.get_event(line[i + window_size])
                 if label >= len(vocab):
                     logger.error(f"Event \"{line[i + window_size]}\" is not in vocabulary")
+                    logger.error(labels[i: i + window_size + 1])
             else:
                 if not isinstance(labels, int):
                     label = max(labels[i: i + window_size])
