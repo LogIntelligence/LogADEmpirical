@@ -81,6 +81,7 @@ class Trainer:
             y_true.append(label.detach().clone().cpu().numpy())
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
+        print(y_true.shape,y_pred.shape)
         loss = np.mean(losses)
         acc = top_k_accuracy_score(y_true, y_pred, k=topk)
         return loss, acc
