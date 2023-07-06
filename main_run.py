@@ -158,8 +158,6 @@ def train_and_eval(args: argparse.Namespace,
     print("Loading train dataset\n")
     data, stat = load_features(train_path,
                                is_unsupervised=is_unsupervised,
-                               min_len=args.history_size,
-                               pad_token=vocab.pad_token,
                                is_train=True)
     logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
@@ -234,8 +232,6 @@ def train_and_eval(args: argparse.Namespace,
     print("Loading test dataset\n")
     data, stat = load_features(test_path,
                                is_unsupervised=is_unsupervised,
-                               min_len=args.history_size,
-                               pad_token=vocab.pad_token,
                                is_train=False)
     logger.info(f"Test data statistics: {stat}")
     label_dict = {}

@@ -5,7 +5,7 @@ from typing import List, Tuple, Optional, Any
 import numpy as np
 
 
-def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding', is_train=True):
+def load_features(data_path, is_unsupervised=True, min_len=0, is_train=True):
     """
     Load features from pickle file
     Parameters
@@ -21,56 +21,56 @@ def load_features(data_path, is_unsupervised=True, min_len=0, pad_token='padding
     """
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
-    # if is_train:
-    #     if is_unsupervised:
-    #         logs = []
-    #         no_abnormal = 0
-    #         for seq in data:
-    #             # if len(seq['EventTemplate']) < min_len:
-    #             #     continue
-    #             if not isinstance(seq['Label'], int):
-    #                 label = max(seq['Label'])
-    #             else:
-    #                 label = seq['Label']
-    #             if label == 0:
-    #                 logs.append((seq['EventTemplate'], label))
-    #             else:
-    #                 no_abnormal += 1
-    #         print("Number of abnormal sessions:", no_abnormal)
-    #     else:
-    #         logs = []
-    #         no_abnormal = 0
-    #         for seq in data:
-    #             # if len(seq['EventTemplate']) < min_len:
-    #             #     continue
-    #             if not isinstance(seq['Label'], int):
-    #                 label = seq['Label']
-    #                 if max(label) > 0:
-    #                     no_abnormal += 1
-    #             else:
-    #                 label = seq['Label']
-    #                 if label > 0:
-    #                     no_abnormal += 1
-    #             logs.append((seq['EventTemplate'], label))
-    #         print("Number of abnormal sessions:", no_abnormal)
-    # else:
-    logs = []
-    no_abnormal = 0
-    for seq in data:
-        # if len(seq['EventTemplate']) < min_len:
-        #     continue
-        if not isinstance(seq['Label'], int):
-            label = seq['Label']
-            if max(label) > 0:
-                no_abnormal += 1
+    if is_train:
+        if is_unsupervised:
+            logs = []
+            no_abnormal = 0
+            for seq in data:
+                if len(seq['EventTemplate']) < min_len:
+                    continue
+                if not isinstance(seq['Label'], int):
+                    label = max(seq['Label'])
+                else:
+                    label = seq['Label']
+                if label == 0:
+                    logs.append((seq['EventTemplate'], label))
+                else:
+                    no_abnormal += 1
+            print("Number of abnormal sessions:", no_abnormal)
         else:
-            label = seq['Label']
-            if label > 0:
-                no_abnormal += 1
-        logs.append((seq['EventTemplate'], label))
-    print("Number of abnormal sessions:", no_abnormal)
-    logs_len = [len(log[0]) for log in logs]
-    return logs, {"min": min(logs_len), "max": max(logs_len), "mean": np.mean(logs_len)}
+            logs = []
+            no_abnormal = 0
+            for seq in data:
+                if len(seq['EventTemplate']) < min_len:
+                    continue
+                if not isinstance(seq['Label'], int):
+                    label = seq['Label']
+                    if max(label) > 0:
+                        no_abnormal += 1
+                else:
+                    label = seq['Label']
+                    if label > 0:
+                        no_abnormal += 1
+                logs.append((seq['EventTemplate'], label))
+            print("Number of abnormal sessions:", no_abnormal)
+    else:
+        logs = []
+        no_abnormal = 0
+        for seq in data:
+            if len(seq['EventTemplate']) < min_len:
+                continue
+            if not isinstance(seq['Label'], int):
+                label = seq['Label']
+                if max(label) > 0:
+                    no_abnormal += 1
+            else:
+                label = seq['Label']
+                if label > 0:
+                    no_abnormal += 1
+            logs.append((seq['EventTemplate'], label))
+        print("Number of abnormal sessions:", no_abnormal)
+        logs_len = [len(log[0]) for log in logs]
+        return logs, {"min": min(logs_len), "max": max(logs_len), "mean": np.mean(logs_len)}
 
 
 def sliding_window(data: List[Tuple[List[str], int]],
@@ -109,16 +109,13 @@ def sliding_window(data: List[Tuple[List[str], int]],
                                          desc=f"Sliding window with size {window_size}"):
         line = list(templates)
         line = [vocab.pad_token] * (window_size - len(line) + is_unsupervised) + line
-        label_level = 'session' if isinstance(labels, int) else 'event'
-        if label_level == 'event':
+        if isinstance(labels, list):
             labels = [0] * (window_size - len(labels) + is_unsupervised) + labels
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
         for i in range(len(line) - window_size if is_unsupervised else len(line) - window_size + 1):
             if is_unsupervised:
-                seq_labels = max(labels[i: i + window_size + 1]) if label_level == 'event' else labels
-                if is_train and seq_labels > 0:
-                    continue
-                label = vocab.get_event(line[i + window_size])
+                label = vocab.get_event(line[i + window_size],
+                                        use_similar=quantitative)  # use_similar only for LogAnomaly
             else:
                 if not isinstance(labels, int):
                     label = max(labels[i: i + window_size])
