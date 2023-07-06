@@ -8,6 +8,9 @@ def arg_parser():
     :return:
     """
     parser = ArgumentParser()
+
+    parser.add_argument("--config_file", default="config/deeplog.yaml", help="config file name")
+
     # input parameters
     parser.add_argument("--model_name", help="which model to use", default="DeepLog",
                         choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog"])
@@ -23,7 +26,7 @@ def arg_parser():
     parser.add_argument("--n_class", default=2, type=int, help="number of classes")
 
     # data process parameters
-    parser.add_argument("--window_type", type=str, choices=["sliding", "session"],
+    parser.add_argument("--grouping", type=str, choices=["sliding", "session"],
                         help="window for building log sequence")
     parser.add_argument("--session_level", type=str, choices=["entry", "minute"],
                         help="to use log entries or log minutes for session level window")

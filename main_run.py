@@ -3,6 +3,7 @@ import pickle
 from collections import Counter
 
 import torch
+import yaml
 from sklearn.utils import shuffle
 
 from logadempirical.data import process_dataset
@@ -14,8 +15,9 @@ from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
 from accelerate import Accelerator
 import logging
-from logging import getLogger
-import numpy as np
+from logging import getLogger, Logger
+import argparse
+from typing import List, Tuple, Optional
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -26,7 +28,13 @@ logging.basicConfig(
 accelerator = Accelerator()
 
 
-def build_vocab(vocab_path, data_dir, train_path, embeddings, embedding_dim=300, is_unsupervised=False):
+def build_vocab(vocab_path: str,
+                data_dir: str,
+                train_path: str,
+                embeddings: str,
+                embedding_dim: int = 300,
+                is_unsupervised: bool = False,
+                logger: Logger = getLogger("__name__")) -> Vocab:
     """
     Build vocab from training data
     Parameters
@@ -37,6 +45,7 @@ def build_vocab(vocab_path, data_dir, train_path, embeddings, embedding_dim=300,
     embeddings: str: Path to pretrained embeddings
     embedding_dim: int: Dimension of embeddings
     is_unsupervised: bool: Whether the model is unsupervised or not
+    logger: Logger: Logger
 
     Returns
     -------
@@ -123,7 +132,13 @@ def build_model(args, vocab_size):
     return model
 
 
-def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
+def train_and_eval(args: argparse.Namespace,
+                   train_path: str,
+                   test_path: str,
+                   vocab: Vocab,
+                   model: torch.nn.Module,
+                   is_unsupervised=False,
+                   logger: Logger = getLogger("__name__")) -> Tuple[float, float, float, float]:
     """
     Run model
     Parameters
@@ -134,6 +149,7 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     vocab: Vocab: Vocabulary
     model: torch.nn.Module: Model
     is_unsupervised: bool: Whether the model is unsupervised or not
+    logger: Logger: Logger
 
     Returns
     -------
@@ -147,10 +163,6 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
                                is_train=True)
     logger.info(f"Train data statistics: {stat}")
     data = shuffle(data)
-    normal_data = [len(x[0]) for x in data if np.max(x[1]) == 0]
-    abnormal_data = [len(x[0]) for x in data if np.max(x[1]) == 1]
-    print(f"Normal data: {np.max(normal_data)} - {np.min(normal_data)} - {np.mean(normal_data)}")
-    print(f"Abnormal data: {np.max(abnormal_data)} - {np.min(abnormal_data)} - {np.mean(abnormal_data)}")
     n_valid = int(len(data) * args.valid_ratio)
     train_data, valid_data = data[:-n_valid], data[-n_valid:]
 
@@ -266,21 +278,19 @@ def run(args, train_path, test_path, vocab, model, is_unsupervised=False):
     return acc, f1, pre, rec
 
 
-if __name__ == "__main__":
-    parser = arg_parser()
-    args = parser.parse_args()
+def run(args):
     logger = getLogger(args.model_name)
     logger.info(accelerator.state)
     logger.setLevel(logging.INFO if accelerator.is_local_main_process else logging.ERROR)
     os.makedirs(args.output_dir, exist_ok=True)
 
-    if args.window_type == "sliding":
+    if args.grouping == "sliding":
         args.output_dir = f"{args.output_dir}/{args.dataset_name}/sliding/W{args.window_size}_S{args.step_size}_C{args.is_chronological}_train{args.train_size}"
     else:
         args.output_dir = f"{args.output_dir}/{args.dataset_name}/session/train{args.train_size}"
     train_path, test_path = process_dataset(logger, data_dir=args.data_dir, output_dir=args.output_dir,
                                             log_file=args.log_file,
-                                            dataset_name=args.dataset_name, window_type=args.window_type,
+                                            dataset_name=args.dataset_name, grouping=args.grouping,
                                             window_size=args.window_size, step_size=args.step_size,
                                             train_size=args.train_size, is_chronological=args.is_chronological,
                                             session_type=args.session_level)
@@ -293,82 +303,26 @@ if __name__ == "__main__":
                             train_path,
                             args.embeddings,
                             embedding_dim=args.embedding_dim,
-                            is_unsupervised=is_unsupervised)
+                            is_unsupervised=is_unsupervised,
+                            logger=logger)
     model = build_model(args, vocab_size=len(log_vocab))
     print(model)
-    run(args, train_path, test_path, log_vocab, model, is_unsupervised=is_unsupervised)
+    train_and_eval(args,
+                   train_path,
+                   test_path,
+                   log_vocab,
+                   model,
+                   is_unsupervised=is_unsupervised,
+                   logger=logger)
 
-    # options["model_dir"] = options["output_dir"] + options["model_name"] + "/"
-    # options["train_vocab"] = options["output_dir"] + "train.pkl"
-    # options["vocab_path"] = options["output_dir"] + options["model_name"] + "_vocab.pkl"  # pickle file
-    # options["model_path"] = options["model_dir"] + options["model_name"] + ".pth"
-    # options["scale_path"] = options["model_dir"] + "scale.pkl"
-    #
-    # os.makedirs(options["model_dir"], exist_ok=True)
-    #
-    # print("Save options parameters")
-    # save_parameters(options, options["model_dir"] + "parameters.txt")
-    #
-    # # if args.model_name == "logbert":
-    # #     run_logbert(options)
-    # if args.model_name == "deeplog":
-    #     run_deeplog(options)
-    # elif args.model_name == "loganomaly":
-    #     run_loganomaly(options)
-    # elif args.model_name == "logrobust":
-    #     run_logrobust(options)
-    # elif args.model_name == "cnn":
-    #     run_cnn(options)
-    # elif args.model_name == "plelog":
-    #     run_plelog(options)
-    # elif args.model_name == "baseline":
-    #     pass
-    # elif args.model_name == "neurallog":
-    #     run_neuralog(options)
-    # else:
-    #     raise NotImplementedError(f"Model {args.model_name} is not defined")
 
-    """ To run this file, use the following command:
-    python main.py
-        --data_dir ../data/
-        --output_dir ../output/
-        --model_name deeplog
-        --dataset_name bgl
-        --window_type session
-        --window_size 10
-        --step_size 1
-        --train_size 0.8
-        --is_chronological True
-        --session_level entry
-        --log_file BGL.log
-        --is_process True
-        --is_instance True
-        --train_file train.csv
-        --test_file test.csv
-        --batch_size 32
-        --lr 0.01
-        --num_workers 5
-        --adam_beta1 0.9
-        --adam_beta2 0.999
-        --adam_weight_decay 0.00
-        --accumulation_step 1
-        --optimizer adam
-        --lr_decay_ratio 0.1
-        --sequential True
-        --quantitative False
-        --semantic False
-        --sample sliding_window
-        --history_size 10
-        --embeddings embeddings.json
-        --input_size 1
-        --hidden_size 128
-        --num_layers 2
-        --embedding_dim 50
-        --num_candidates 9
-        --resume_path False
-        --num_encoder_layers 1
-        --dim_model 300
-        --num_heads 8
-        --dim_feedforward 2048
-        --transformers_dropout 0.1
-    """
+if __name__ == "__main__":
+    parser = arg_parser()
+    args = parser.parse_args()
+    if args.config_file is not None and os.path.exists(args.config_file):
+        config_file = args.config_file
+        with open(config_file, "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+            args = argparse.Namespace(**config)
+        print(f"Loaded config from {config_file}!")
+    run(args)

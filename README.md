@@ -82,9 +82,35 @@ $ python generate_embeddings.py <dataset> <strategy>
 ```
 
 ### 2. Training and Testing
+#### 2.1. Configuration File
+The configuration files used to set up the hyperparameters for training and testing can be found at `/config`.
+Main parameters are described as follows:
 
+- `data_dir`: the directory of the dataset
+- `log_file`: the path to the log file
+- `dataset_name`: the name of the dataset
+- `grouping`: the type of log grouping technique (session or sliding)
+- `session_level`: to grouping with sliding window by time or log entries (i.e., entry or minute)
+- `window_size`: window size for sliding grouping
+- `step_size`: step size for sliding grouping (if `step_size` = `window_size`, it is equivalent to fixed grouping)
+- `is_chronological`: whether to use chronological order for train/test split (only apply for sliding grouping)
+- `model_name`: the name of the model (e.g., DeepLog, LogAnomaly, LogRobust, PLELog, CNN)
+- `sequential`: whether to use sequential features (i.e., indexes of log templates) or not
+- `quantitative`: whether to use quantitative features (i.e., event count vectors) or not
+- `semantic`: whether to use semantic features (i.e., log template embeddings) or not
+- `embedding_dim`: the dimension of log template embeddings
+- `embeddings`: the path to the json file for log template embeddings
+
+Training parameters such as `batch_size`, `lr`, `max_epoch`, `optimizer`, etc. are also defined in the configuration files.
+
+#### 2.2. To run the code
+```shell
+python main_run.py --config_file <config_file>
+# where `<config_file>` is the path to the configuration file.
 ```
-```
+
+To see all the options, run `python main_run.py -h`.
+
 
 ### Citation
 
