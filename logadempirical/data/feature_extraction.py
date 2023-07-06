@@ -108,7 +108,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
     for idx, (templates, labels) in tqdm(enumerate(data), total=len(data),
                                          desc=f"Sliding window with size {window_size}"):
         line = list(templates)
-        line = [vocab.pad_token] * (window_size - len(line) + is_unsupervised) + line
+        line = line + [vocab.pad_token] * (window_size - len(line) + is_unsupervised)
         if isinstance(labels, list):
             labels = [0] * (window_size - len(labels) + is_unsupervised) + labels
         session_labels[idx] = labels if isinstance(labels, int) else max(labels)
