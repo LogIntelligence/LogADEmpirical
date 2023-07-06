@@ -18,15 +18,15 @@ class Vocab(object):
     def __init__(self, logs, emb_file="embeddings.json", embedding_dim=100):
 
         self.stoi = {}
-        self.itos = []
+        self.itos = ['padding']
+        self.pad_token = "padding"
 
         for line in logs:
             self.itos.extend(line)
 
-        self.itos = list(set(self.itos))
-        self.pad_index = len(self.itos)
-        self.itos.append("padding")
-        self.pad_token = "padding"
+        self.itos = ['padding'] + list(set(self.itos))
+        # self.pad_index = len(self.itos)
+        # self.itos.append("padding")
         self.unk_index = len(self.itos)
         self.stoi = {e: i for i, e in enumerate(self.itos)}
         self.semantic_vectors = read_json(emb_file)

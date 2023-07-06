@@ -69,8 +69,8 @@ def load_features(data_path, is_unsupervised=True, min_len=0, is_train=True):
                     no_abnormal += 1
             logs.append((seq['EventTemplate'], label))
         print("Number of abnormal sessions:", no_abnormal)
-        logs_len = [len(log[0]) for log in logs]
-        return logs, {"min": min(logs_len), "max": max(logs_len), "mean": np.mean(logs_len)}
+    logs_len = [len(log[0]) for log in logs]
+    return logs, {"min": min(logs_len), "max": max(logs_len), "mean": np.mean(logs_len)}
 
 
 def sliding_window(data: List[Tuple[List[str], int]],
