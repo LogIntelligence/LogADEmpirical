@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from typing import Any, Optional, List, Union, Tuple
 import logging
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, top_k_accuracy_score
 from itertools import chain
 
 
@@ -62,7 +62,7 @@ class Trainer:
 
         return total_loss / len(train_loader)
 
-    def _valid_epoch(self, val_loader: DataLoader, device: str):
+    def _valid_epoch(self, val_loader: DataLoader, device: str, topk: int = 1):
         self.model.eval()
         y_pred = []
         y_true = []
@@ -73,19 +73,19 @@ class Trainer:
             with torch.no_grad():
                 outputs = self.model(batch, device=device)
             loss = outputs.loss
-            probabilities = outputs.probabilities
-            y_pred.append(torch.argmax(probabilities, dim=1).detach().clone().cpu().numpy())
-            y_pred = self.accelerator.gather(y_pred)
+            probabilities = self.accelerator.gather(outputs.probabilities)
+            y_pred.append(probabilities.detach().clone().cpu().numpy())
+            # y_pred = self.accelerator.gather(y_pred)
             losses.append(loss.item())
             label = self.accelerator.gather(batch['label'])
             y_true.append(label.detach().clone().cpu().numpy())
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
         loss = np.mean(losses)
-        acc = accuracy_score(y_true, y_pred)
+        acc = top_k_accuracy_score(y_true, y_pred, k=topk)
         return loss, acc
 
-    def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None):
+    def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
@@ -107,7 +107,7 @@ class Trainer:
         total_val_acc = 0
         for epoch in range(self.no_epochs):
             train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
-            val_loss, val_acc = self._valid_epoch(val_loader, device)
+            val_loss, val_acc = self._valid_epoch(val_loader, device, topk=topk)
             if self.logger is not None:
                 self.logger.debug(
                     f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
