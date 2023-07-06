@@ -18,6 +18,7 @@ import logging
 from logging import getLogger, Logger
 import argparse
 from typing import List, Tuple, Optional
+import numpy as np
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -55,12 +56,7 @@ def build_vocab(vocab_path: str,
         with open(train_path, 'rb') as f:
             data = pickle.load(f)
         if is_unsupervised:
-            logs = []
-            for seq in data:
-                if type(seq['Label']) == list:
-                    logs.append([e for e, l in zip(seq['EventTemplate'], seq['Label']) if l == 0])
-                elif seq['Label'] == 0:
-                    logs.append(seq['EventTemplate'])
+            logs = [x['EventTemplate'] for x in data if np.max(x['Label']) == 0]
         else:
             logs = [x['EventTemplate'] for x in data]
         vocab = Vocab(logs, os.path.join(data_dir, embeddings), embedding_dim=embedding_dim)
@@ -85,7 +81,6 @@ def build_model(args, vocab_size):
     -------
 
     """
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
     if args.model_name == "DeepLog":
         model_config = ModelConfig(
             num_layers=args.num_layers,
@@ -93,7 +88,7 @@ def build_model(args, vocab_size):
             vocab_size=vocab_size,
             embedding_dim=args.embedding_dim,
             dropout=args.dropout,
-            criterion=criterion
+            criterion=torch.nn.CrossEntropyLoss(ignore_index=0)
         )
     elif args.model_name == "LogAnomaly":
         model_config = ModelConfig(
@@ -102,7 +97,7 @@ def build_model(args, vocab_size):
             vocab_size=vocab_size,
             embedding_dim=args.embedding_dim,
             dropout=args.dropout,
-            criterion=criterion,
+            criterion=torch.nn.CrossEntropyLoss(ignore_index=0),
             use_semantic=args.semantic
         )
     elif args.model_name == "LogRobust":
@@ -113,7 +108,7 @@ def build_model(args, vocab_size):
             is_bilstm=True,
             n_class=args.n_class,
             dropout=args.dropout,
-            criterion=criterion
+            criterion=torch.nn.CrossEntropyLoss()
         )
     elif args.model_name == "CNN":
         model_config = ModelConfig(
@@ -122,7 +117,7 @@ def build_model(args, vocab_size):
             n_class=args.n_class,
             dropout=args.dropout,
             out_channels=args.hidden_size,
-            criterion=criterion
+            criterion=torch.nn.CrossEntropyLoss()
         )
     elif args.model_name == "PLELog":
         raise NotImplementedError
