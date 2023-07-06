@@ -85,7 +85,7 @@ def build_model(args, vocab_size):
     -------
 
     """
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=vocab_size)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
     if args.model_name == "DeepLog":
         model_config = ModelConfig(
             num_layers=args.num_layers,
