@@ -27,6 +27,7 @@ class Trainer:
                  decay_rate: float = 0.9,
                  logger: logging.Logger = None,
                  accelerator: Any = None,
+                 num_classes: int = 2,
                  ):
         self.model = model
         self.train_dataset = train_dataset
@@ -41,6 +42,7 @@ class Trainer:
         self.decay_rate = decay_rate
         self.logger = logger
         self.accelerator = accelerator
+        self.num_classes = num_classes
 
     def _train_epoch(self, train_loader: DataLoader, device: str, scheduler: Any, progress_bar: Any):
         self.model.train()
@@ -81,9 +83,9 @@ class Trainer:
             y_true.append(label.detach().clone().cpu().numpy())
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
-        print(y_true.shape,y_pred.shape)
+        print(y_true.shape, y_pred.shape)
         loss = np.mean(losses)
-        acc = top_k_accuracy_score(y_true, y_pred, k=topk)
+        acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
         return loss, acc
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):

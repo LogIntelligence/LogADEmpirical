@@ -205,7 +205,8 @@ def train_and_eval(args: argparse.Namespace,
         warmup_rate=args.warmup_rate,
         accumulation_step=args.accumulation_step,
         logger=logger,
-        accelerator=accelerator
+        accelerator=accelerator,
+        num_classes=len(vocab) if is_unsupervised else args.n_class,
     )
 
     train_loss, val_loss, val_acc = trainer.train(device=device,
