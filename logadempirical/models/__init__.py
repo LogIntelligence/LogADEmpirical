@@ -47,10 +47,14 @@ def get_model(model_name: str, config: ModelConfig):
         model = NeuralLog(
             num_encoder_layers=config.num_layers,
             dim_model=config.embedding_dim,
+            dim_feedforward=config.dim_feedforward,
+            num_heads=config.num_heads,
             n_class=config.n_class,
             dropout=config.dropout,
             criterion=config.criterion
         )
+    elif model_name == 'PLELog':
+        raise NotImplementedError
     else:
         raise NotImplementedError
     return model

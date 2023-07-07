@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import numpy as np
 import re
@@ -118,13 +120,11 @@ def load_embeddings_fasttext(embedding_path: str) -> dict:
 
 
 if __name__ == '__main__':
-    for dataset in ['BGL', 'HDFS', 'Spirit', 'Thunderbird']:
-        print(f'Generating embeddings for {dataset}...')
-        template_df = pd.read_csv(f'./{dataset}/{dataset}.log_templates.csv')
-        templates = template_df['EventTemplate'].tolist()
-        embeddings_tfidf = generate_embeddings_fasttext(templates, strategy='tfidf')
-        # embeddings_average = generate_embeddings_fasttext(templates, strategy='average')
-        with open(f'./{dataset}/{dataset}.log_embeddings_tfidf.json', 'w') as f:
-            json.dump(embeddings_tfidf, f)
-        # with open(f'./{dataset}/{dataset}.log_embeddings_average.json', 'w') as f:
-        #     json.dump(embeddings_average, f)
+    dataset = sys.argv[1]
+    strategy = sys.argv[2]
+    print(f'Generating embeddings for {dataset} using {strategy}...')
+    template_df = pd.read_csv(f'./{dataset}/{dataset}.log_templates.csv')
+    templates = template_df['EventTemplate'].tolist()
+    embeddings = generate_embeddings_fasttext(templates, strategy=strategy)
+    with open(f'./{dataset}/{dataset}.log_embeddings_{strategy}.json', 'w') as f:
+        json.dump(embeddings, f)

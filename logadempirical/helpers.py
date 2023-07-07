@@ -8,6 +8,9 @@ def arg_parser():
     :return:
     """
     parser = ArgumentParser()
+
+    parser.add_argument("--config_file", default="config/deeplog.yaml", help="config file name")
+
     # input parameters
     parser.add_argument("--model_name", help="which model to use", default="DeepLog",
                         choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog"])
@@ -23,7 +26,7 @@ def arg_parser():
     parser.add_argument("--n_class", default=2, type=int, help="number of classes")
 
     # data process parameters
-    parser.add_argument("--window_type", type=str, choices=["sliding", "session"],
+    parser.add_argument("--grouping", type=str, choices=["sliding", "session"],
                         help="window for building log sequence")
     parser.add_argument("--session_level", type=str, choices=["entry", "minute"],
                         help="to use log entries or log minutes for session level window")
@@ -31,6 +34,10 @@ def arg_parser():
     parser.add_argument('--step_size', default=1, type=int, help='step size (entries or minutes)')
     parser.add_argument('--train_size', default=0.4, type=float, help="train size")
     parser.add_argument("--valid_ratio", default=0.1, type=float, help="valid size")
+
+    # model parameters
+    parser.add_argument("--resume", default=False, action='store_true')
+    parser.add_argument("--train", default=False, action='store_true')
 
     # training parameters
     parser.add_argument("--max_epoch", default=200, type=int, help="max number of training epochs")
@@ -63,11 +70,9 @@ def arg_parser():
     parser.add_argument("--num_layers", default=2, type=int, help="num of lstm layers")
     parser.add_argument("--embedding_dim", default=50, type=int, help="embedding dimension of logkeys")
     parser.add_argument("--topk", default=9, type=int, help="top g candidates are normal")
-    parser.add_argument("--resume_path", action='store_true')
 
     # neural_log
     parser.add_argument("--num_encoder_layers", default=1, type=int, help="number of encoder layers")
-    parser.add_argument("--dim_model", default=300, type=int, help="model's dim")
     parser.add_argument("--num_heads", default=8, type=int, help="number of attention heads")
     parser.add_argument("--dim_feedforward", default=2048, type=int, help="feed-forward network's dim")
 

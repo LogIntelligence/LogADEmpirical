@@ -12,7 +12,7 @@ def process_dataset(logger: Logger,
                     output_dir: str,
                     log_file: str,
                     dataset_name: str,
-                    window_type: str,
+                    grouping: str,
                     window_size: int,
                     step_size: int,
                     train_size: float,
@@ -25,7 +25,7 @@ def process_dataset(logger: Logger,
     :param output_dir:
     :param log_file:
     :param dataset_name:
-    :param window_type:
+    :param grouping:
     :param window_size:
     :param step_size:
     :param train_size:
@@ -42,7 +42,7 @@ def process_dataset(logger: Logger,
     df = pd.read_csv(f'{data_dir}/{log_file}_structured.csv')
 
     # build log sequences
-    if window_type == "sliding":
+    if grouping == "sliding":
         df["Label"] = df["Label"].apply(lambda x: int(x != "-"))
         n_train = int(len(df) * train_size)
         if session_type == "entry":
@@ -68,12 +68,13 @@ def process_dataset(logger: Logger,
                 step_size=step_size
             )
             test_window = sliding(
-                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(drop=True),
+                df[["Timestamp", "Label", "EventId", "EventTemplate", "Content"]].iloc[n_train:, :].reset_index(
+                    drop=True),
                 window_size=window_size,
                 step_size=step_size
             )
 
-    elif window_type == "session":
+    elif grouping == "session":
         if dataset_name == "HDFS":
             id_regex = r'(blk_-?\d+)'
             label_dict = {}
@@ -87,12 +88,15 @@ def process_dataset(logger: Logger,
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
         elif dataset_name == "BGL":
+            # df["NodeId"] = df["Node"].apply(lambda x: str(x).split(":")[0])
             window_df = session_window_bgl(df)
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
+        else:
+            raise NotImplementedError(f"{dataset_name} with {grouping} is not implemented")
     else:
-        raise NotImplementedError(f"{window_type} is not implemented")
+        raise NotImplementedError(f"{grouping} is not implemented")
 
     os.makedirs(output_dir, exist_ok=True)
     with open(os.path.join(output_dir, "train.pkl"), mode="wb") as f:
@@ -106,5 +110,5 @@ if __name__ == '__main__':
     process_dataset(Logger("BGL"),
                     data_dir="../../dataset/", output_dir="../../dataset/", log_file="BGL.log",
                     dataset_name="bgl",
-                    window_type="sliding", window_size=10, step_size=10, train_size=0.8, is_chronological=True,
+                    grouping="sliding", window_size=10, step_size=10, train_size=0.8, is_chronological=True,
                     session_type="entry")

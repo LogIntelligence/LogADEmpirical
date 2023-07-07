@@ -53,6 +53,8 @@ class ModelConfig:
                  max_seq_len: Optional[int] = None,
                  out_channels: Optional[int] = None,
                  use_semantic: Optional[bool] = False,
+                 dim_feedforward: Optional[int] = None,
+                 num_heads: Optional[int] = None,
                  ):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
@@ -65,6 +67,8 @@ class ModelConfig:
         self.max_seq_len = max_seq_len
         self.out_channels = out_channels
         self.use_semantic = use_semantic
+        self.dim_feedforward = dim_feedforward
+        self.num_heads = num_heads
 
 
 class ModelOutput:

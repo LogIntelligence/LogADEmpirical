@@ -1,0 +1,47 @@
+# dataset configuration
+data_dir: ./dataset/HDFS
+dataset_name: HDFS
+log_file: HDFS.log
+embeddings: embeddings_average.json
+
+# data preprocessing
+grouping: session
+session_level: entry
+sequential: true
+quantitative: true
+semantic: false
+is_chronological: false
+history_size: 10
+
+# model configuration
+model_name: LogAnomaly
+embedding_dim: 300
+dropout: 0.1
+hidden_size: 128
+num_layers: 2
+topk: 9
+
+# optimizer configuration
+optimizer: adam
+adam_beta1: 0.9
+adam_beta2: 0.999
+epsilon: 1.0e-08
+lr: 0.001
+optim_momentum: 0.99
+scheduler: linear
+warmup_rate: 0.1
+weight_decay: 0.0
+
+# training configuration
+accumulation_step: 2
+batch_size: 512
+max_epoch: 20
+
+# common configuration
+output_dir: ./output/
+resume: false
+step_size: 20
+train_size: 0.1
+valid_ratio: 0.1
+window_size: 20
+train: true
