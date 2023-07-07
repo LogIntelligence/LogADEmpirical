@@ -39,3 +39,4 @@ warmup_rate: 0.1
 weight_decay: 0.1
 window_size: 20
 grouping: session
+train: false

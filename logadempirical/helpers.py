@@ -35,6 +35,10 @@ def arg_parser():
     parser.add_argument('--train_size', default=0.4, type=float, help="train size")
     parser.add_argument("--valid_ratio", default=0.1, type=float, help="valid size")
 
+    # model parameters
+    parser.add_argument("--resume_path", default=False, action='store_true')
+    parser.add_argument("--train", default=False, action='store_true')
+
     # training parameters
     parser.add_argument("--max_epoch", default=200, type=int, help="max number of training epochs")
     parser.add_argument("--warmup_rate", default=0.1, type=float, help="warmup rate for learning rate scheduler")
@@ -66,7 +70,6 @@ def arg_parser():
     parser.add_argument("--num_layers", default=2, type=int, help="num of lstm layers")
     parser.add_argument("--embedding_dim", default=50, type=int, help="embedding dimension of logkeys")
     parser.add_argument("--topk", default=9, type=int, help="top g candidates are normal")
-    parser.add_argument("--resume_path", action='store_true')
 
     # neural_log
     parser.add_argument("--num_encoder_layers", default=1, type=int, help="number of encoder layers")

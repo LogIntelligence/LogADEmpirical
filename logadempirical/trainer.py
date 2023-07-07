@@ -43,6 +43,7 @@ class Trainer:
         self.logger = logger
         self.accelerator = accelerator
         self.num_classes = num_classes
+        self.scheduler = None
 
     def _train_epoch(self, train_loader: DataLoader, device: str, scheduler: Any, progress_bar: Any):
         self.model.train()
@@ -96,7 +97,7 @@ class Trainer:
         )
         num_training_steps = int(self.no_epochs * len(train_loader) / self.accumulation_step)
         num_warmup_steps = int(num_training_steps * self.warmup_rate)
-        scheduler = get_scheduler(
+        self.scheduler = get_scheduler(
             self.scheduler_type,
             optimizer=self.optimizer,
             num_warmup_steps=num_warmup_steps,
@@ -108,7 +109,7 @@ class Trainer:
         total_val_loss = 0
         total_val_acc = 0
         for epoch in range(self.no_epochs):
-            train_loss = self._train_epoch(train_loader, device, scheduler, progress_bar)
+            train_loss = self._train_epoch(train_loader, device, self.scheduler, progress_bar)
             val_loss, val_acc = self._valid_epoch(val_loader, device, topk=topk)
             if self.logger is not None:
                 self.logger.debug(
@@ -119,11 +120,7 @@ class Trainer:
             if save_dir is not None and model_name is not None:
                 self.save_model(save_dir, model_name)
         self.save_model(save_dir, model_name)
-        if self.logger is not None:
-            self.logger.info(f"Train Loss: {total_train_loss / self.no_epochs:.4f} - "
-                             f"Val Loss: {total_val_loss / self.no_epochs:.4f} - "
-                             f"Val Acc: {total_val_acc / self.no_epochs:.4f}")
-        return train_loss, val_loss, val_acc
+        return total_train_loss / self.no_epochs, val_loss, val_acc
 
     def predict_supervised(self, dataset, y_true, device: str = 'cpu'):
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
@@ -138,7 +135,7 @@ class Trainer:
             del batch['idx']
             # batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
-                y_prob = self.model.predict(batch, device=device)
+                y_prob = self.model.module.predict(batch, device=device)
             y = torch.argmax(y_prob, dim=1)
             y = self.accelerator.gather(y).cpu().numpy().tolist()
             for idx, y_i in zip(idxs, y):
@@ -167,7 +164,7 @@ class Trainer:
                 # batch = {k: v.to(device) for k, v in batch.items()}
                 label = self.accelerator.gather(batch['label'])
                 with torch.no_grad():
-                    y_prob = self.model.predict(batch, device=device)
+                    y_prob = self.model.module.predict(batch, device=device)
                 y_pred = torch.argsort(y_prob, dim=1, descending=True)[:, :]
                 y_pos = torch.where(y_pred == label.unsqueeze(1))[1] + 1
                 y_topk.extend(y_pos.cpu().numpy().tolist())
@@ -191,12 +188,12 @@ class Trainer:
                             disable=not self.accelerator.is_local_main_process)
         for batch in test_loader:
             idxs = self.accelerator.gather(batch['idx']).detach().clone().cpu().numpy().tolist()
-            support_label = (batch['sequential'] > self.num_classes).any(dim=1)
+            support_label = (batch['sequential'] >= self.num_classes).any(dim=1)
             support_label = self.accelerator.gather(support_label).cpu().numpy().tolist()
             batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
             del batch['idx']
             with torch.no_grad():
-                y = self.model.predict_class(batch, top_k=topk, device=device)
+                y = self.accelerator.unwrap_model(self.model).predict_class(batch, top_k=topk, device=device)
             y = self.accelerator.gather(y).cpu().numpy().tolist()
             for idx, y_i, label_i, s_label in zip(idxs, y, batch_label, support_label):
                 y_pred[idx] = y_pred[idx] | (label_i not in y_i or s_label)
@@ -225,7 +222,20 @@ class Trainer:
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         self.model = self.accelerator.unwrap_model(self.model)
-        self.accelerator.save(self.model.state_dict(), f"{save_dir}/{model_name}.pt")
+        self.accelerator.save(
+            {
+                "lr_scheduler": self.scheduler.state_dict() if self.scheduler is not None else None,
+                "optimizer": self.optimizer.state_dict(),
+                "model": self.model.state_dict()
+            },
+            f"{save_dir}/{model_name}.pt"
+        )
 
     def load_model(self, model_path: str):
-        self.model.load_state_dict(torch.load(model_path))
+        checkpoint = torch.load(model_path)
+        self.model = self.accelerator.unwrap_model(self.model)
+        self.model.load_state_dict(checkpoint['model'])
+        self.model = self.accelerator.prepare(self.model)
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        self.optimizer.load_state_dict(checkpoint['optimizer'])

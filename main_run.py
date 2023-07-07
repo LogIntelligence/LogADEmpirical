@@ -209,10 +209,16 @@ def train_and_eval(args: argparse.Namespace,
         num_classes=len(vocab) if is_unsupervised else args.n_class,
     )
 
-    train_loss, val_loss, val_acc = trainer.train(device=device,
-                                                  save_dir=f"{args.output_dir}/models",
-                                                  model_name=args.model_name,
-                                                  topk=1 if is_unsupervised else args.topk)
+    if args.resume and os.path.exists(f"{args.output_dir}/models/{args.model_name}.pt"):
+        logger.info(f"Loading model from {args.resume_path}...")
+        trainer.load_model(f"{args.output_dir}/models/{args.model_name}.pt")
+
+    if args.train:
+        train_loss, val_loss, val_acc = trainer.train(device=device,
+                                                      save_dir=f"{args.output_dir}/models",
+                                                      model_name=args.model_name,
+                                                      topk=1 if is_unsupervised else args.topk)
+        logger.info(f"Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
     if is_unsupervised:
         acc, recommend_topk = trainer.predict_unsupervised(valid_dataset,
                                                            session_labels,
