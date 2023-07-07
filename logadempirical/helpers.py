@@ -36,7 +36,7 @@ def arg_parser():
     parser.add_argument("--valid_ratio", default=0.1, type=float, help="valid size")
 
     # model parameters
-    parser.add_argument("--resume_path", default=False, action='store_true')
+    parser.add_argument("--resume", default=False, action='store_true')
     parser.add_argument("--train", default=False, action='store_true')
 
     # training parameters

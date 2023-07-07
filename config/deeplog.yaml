@@ -26,7 +26,7 @@ optim_momentum: 0.9
 optimizer: adamw
 output_dir: ./output/
 quantitative: false
-resume_path: false
+resume: false
 scheduler: linear
 semantic: false
 sequential: true

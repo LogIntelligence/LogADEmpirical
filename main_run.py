@@ -210,7 +210,7 @@ def train_and_eval(args: argparse.Namespace,
     )
 
     if args.resume and os.path.exists(f"{args.output_dir}/models/{args.model_name}.pt"):
-        logger.info(f"Loading model from {args.resume_path}...")
+        logger.info(f"Loading model from {args.output_dir}/models/{args.model_name}.pt...")
         trainer.load_model(f"{args.output_dir}/models/{args.model_name}.pt")
 
     if args.train:
