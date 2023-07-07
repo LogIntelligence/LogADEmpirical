@@ -25,18 +25,22 @@ class NeuralLog(torch.nn.Module):
         self.linear = torch.nn.Linear(dim_model, n_class)
         self.criterion = criterion
 
-    def forward(self, src, lbl=None, device="cpu"):
-        src = src.to(device)
-        src = src + positional_encoding(src.shape[1], src.shape[2]).to(device)
-        src = self.encoder(src)
-        src = src.sum(dim=1)
-        logits = self.linear(src)
+    def forward(self, batch, device="cpu"):
+        x = batch['semantic']
+        try:
+            y = batch['label']
+        except KeyError:
+            y = None
+        x = x + positional_encoding(x.shape[1], x.shape[2]).to(device)
+        x = self.encoder(x)
+        x = x.sum(dim=1)
+        logits = self.linear(x)
         probabilities = torch.softmax(logits, dim=-1)
         loss = None
-        if lbl is not None and self.criterion is not None:
-            loss = self.criterion(logits, lbl.view(-1).to(device))
+        if y is not None and self.criterion is not None:
+            loss = self.criterion(logits, y.view(-1).to(device))
 
-        return ModelOutput(logits=logits, probabilities=probabilities, loss=loss, embeddings=src)
+        return ModelOutput(logits=logits, probabilities=probabilities, loss=loss, embeddings=x)
 
     def save(self, path):
         torch.save(self.state_dict(), path)
@@ -45,9 +49,11 @@ class NeuralLog(torch.nn.Module):
         self.load_state_dict(torch.load(path))
 
     def predict(self, src, device="cpu"):
+        del src['label']
         return self.forward(src, device=device).probabilities
 
     def predict_class(self, src, device="cpu"):
+        del src['label']
         return torch.argmax(self.forward(src, device=device).probabilities, dim=-1)
 
 
