@@ -7,6 +7,7 @@ from typing import Optional
 class NeuralLog(torch.nn.Module):
     """A transformer model with n encoder layers, d_model embedding dim, and positional encoding.
     """
+
     def __init__(self,
                  num_encoder_layers: int = 6,
                  dim_model: int = 512,

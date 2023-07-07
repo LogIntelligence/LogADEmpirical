@@ -85,7 +85,10 @@ class Trainer:
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
         loss = np.mean(losses)
-        acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
+        if topk > 1:
+            acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
+        else:
+            acc = accuracy_score(y_true, np.argmax(y_pred, axis=1))
         return loss, acc
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):
