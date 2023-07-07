@@ -135,8 +135,8 @@ class Trainer:
             del batch['idx']
             # batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
-                y_prob = self.model.module.predict(batch, device=device)
-            y = torch.argmax(y_prob, dim=1)
+                y = self.model.predict_class(batch, device=device)
+            # y = torch.argmax(y_prob, dim=1)
             y = self.accelerator.gather(y).cpu().numpy().tolist()
             for idx, y_i in zip(idxs, y):
                 y_pred[idx] = y_pred[idx] | y_i
@@ -164,7 +164,7 @@ class Trainer:
                 # batch = {k: v.to(device) for k, v in batch.items()}
                 label = self.accelerator.gather(batch['label'])
                 with torch.no_grad():
-                    y_prob = self.model.module.predict(batch, device=device)
+                    y_prob = self.model.predict(batch, device=device)
                 y_pred = torch.argsort(y_prob, dim=1, descending=True)[:, :]
                 y_pos = torch.where(y_pred == label.unsqueeze(1))[1] + 1
                 y_topk.extend(y_pos.cpu().numpy().tolist())
