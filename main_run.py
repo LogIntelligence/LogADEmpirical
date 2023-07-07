@@ -217,7 +217,7 @@ def train_and_eval(args: argparse.Namespace,
         train_loss, val_loss, val_acc = trainer.train(device=device,
                                                       save_dir=f"{args.output_dir}/models",
                                                       model_name=args.model_name,
-                                                      topk=1 if is_unsupervised else args.topk)
+                                                      topk=1 if not is_unsupervised else args.topk)
         logger.info(f"Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
     if is_unsupervised:
         acc, recommend_topk = trainer.predict_unsupervised(valid_dataset,
