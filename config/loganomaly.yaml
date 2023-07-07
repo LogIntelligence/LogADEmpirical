@@ -10,6 +10,8 @@ session_level: entry
 sequential: true
 quantitative: true
 semantic: false
+is_chronological: false
+history_size: 10
 
 # model configuration
 model_name: LogAnomaly

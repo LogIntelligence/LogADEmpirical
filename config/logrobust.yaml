@@ -10,6 +10,8 @@ session_level: entry
 sequential: false
 semantic: true
 quantitative: false
+is_chronological: false
+history_size: 10
 
 # model configuration
 model_name: LogRobust
