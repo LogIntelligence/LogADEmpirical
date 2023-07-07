@@ -8,11 +8,11 @@ embeddings: embeddings_average.json
 grouping: session
 session_level: entry
 sequential: true
+quantitative: true
 semantic: false
-quantitative: false
 
 # model configuration
-model_name: DeepLog
+model_name: LogAnomaly
 embedding_dim: 300
 dropout: 0.1
 hidden_size: 128

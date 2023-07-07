@@ -7,17 +7,17 @@ embeddings: embeddings_average.json
 # data preprocessing
 grouping: session
 session_level: entry
-sequential: true
-semantic: false
+sequential: false
+semantic: true
 quantitative: false
 
 # model configuration
-model_name: DeepLog
+model_name: LogRobust
 embedding_dim: 300
 dropout: 0.1
 hidden_size: 128
 num_layers: 2
-topk: 9
+n_class: 2
 
 # optimizer configuration
 optimizer: adam
@@ -38,8 +38,6 @@ max_epoch: 20
 # common configuration
 output_dir: ./output/
 resume: false
-step_size: 20
 train_size: 0.1
 valid_ratio: 0.1
-window_size: 20
 train: true

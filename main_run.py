@@ -124,7 +124,6 @@ def build_model(args, vocab_size):
     elif args.model_name == "NeuralLog":
         model_config = ModelConfig(
             embedding_dim=args.embedding_dim,
-            hidden_size=args.hidden_size,
             num_layers=args.num_layers,
             n_class=args.n_class,
             dropout=args.dropout,
