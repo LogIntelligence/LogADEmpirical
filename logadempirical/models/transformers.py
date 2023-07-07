@@ -13,10 +13,12 @@ class NeuralLog(torch.nn.Module):
                  dim_model: int = 512,
                  n_class: int = 2,
                  dropout: float = 0.1,
+                 dim_feedforward: int = 2048,
+                 num_heads: int = 8,
                  criterion: Optional[torch.nn.Module] = torch.nn.CrossEntropyLoss(),
                  ):
         super().__init__()
-        self.encoder_layer = TransformerEncoderLayer(dim_model, 8, 2048, dropout=dropout)
+        self.encoder_layer = TransformerEncoderLayer(dim_model, num_heads, dim_feedforward, dropout=dropout)
         self.encoder = TransformerEncoder(
             self.encoder_layer, num_encoder_layers
         )

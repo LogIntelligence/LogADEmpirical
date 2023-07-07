@@ -60,7 +60,7 @@ class DeepLog(nn.Module):
 
     def predict_class(self, src, top_k=1, device="cpu"):
         del src['label']
-        return torch.topk(self.forward(src, device=device).probabilities, k=top_k, dim=-1).indices
+        return torch.topk(self.forward(src, device=device).probabilities, k=top_k, dim=1).indices
 
 
 class LogRobust(nn.Module):
@@ -136,7 +136,7 @@ class LogRobust(nn.Module):
 
     def predict_class(self, src, device="cpu"):
         del src['label']
-        return torch.argmax(self.forward(src, device=device).probabilities, dim=-1)
+        return torch.argmax(self.forward(src, device=device).probabilities, dim=1)
 
 
 # log key add embedding
@@ -211,7 +211,7 @@ class LogAnomaly(nn.Module):
 
     def predict_class(self, batch, top_k=1, device="cpu"):
         del batch['label']
-        return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=-1).indices
+        return torch.topk(self.forward(batch, device=device).probabilities, k=top_k, dim=1).indices
 
 
 if __name__ == '__main__':

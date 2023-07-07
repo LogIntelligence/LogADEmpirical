@@ -73,7 +73,6 @@ def arg_parser():
 
     # neural_log
     parser.add_argument("--num_encoder_layers", default=1, type=int, help="number of encoder layers")
-    parser.add_argument("--dim_model", default=300, type=int, help="model's dim")
     parser.add_argument("--num_heads", default=8, type=int, help="number of attention heads")
     parser.add_argument("--dim_feedforward", default=2048, type=int, help="feed-forward network's dim")
 
