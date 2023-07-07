@@ -13,27 +13,27 @@ quantitative: false
 
 # model configuration
 model_name: LogRobust
-embedding_dim: 300
-dropout: 0.1
-hidden_size: 128
-num_layers: 2
-n_class: 2
+embedding_dim: 300 # keep default
+dropout: 0.1 # range: from 0.0 to 0.5
+hidden_size: 128 # range: from 32 to 1024
+num_layers: 2 # range: from 1 to 8
+n_class: 2 # keep default
 
 # optimizer configuration
 optimizer: adam
-adam_beta1: 0.9
-adam_beta2: 0.999
-epsilon: 1.0e-08
-lr: 0.001
-optim_momentum: 0.99
+adam_beta1: 0.9 # range: from 0.0 to 1.0
+adam_beta2: 0.999 # range: from 0.0 to 1.0
+epsilon: 1.0e-08 # range: from 1.0e-08 to 1.0e-06
+lr: 0.0001 # range: from 1e-05 to 1e-02
+optim_momentum: 0.99 # range: from 0.0 to 1.0
 scheduler: linear
-warmup_rate: 0.1
-weight_decay: 0.0
+warmup_rate: 0.1 # range: from 0.01 to 0.2
+weight_decay: 0.0 # range: from 0.0 to 0.1
 
 # training configuration
-accumulation_step: 2
-batch_size: 512
-max_epoch: 20
+accumulation_step: 2 # range: from 1 to 10
+batch_size: 512 # range: from 32 to 4096
+max_epoch: 20 # range: from 1 to 100
 
 # common configuration
 output_dir: ./output/
