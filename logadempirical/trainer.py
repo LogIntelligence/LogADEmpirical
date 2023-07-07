@@ -191,13 +191,15 @@ class Trainer:
                             disable=not self.accelerator.is_local_main_process)
         for batch in test_loader:
             idxs = self.accelerator.gather(batch['idx']).detach().clone().cpu().numpy().tolist()
+            support_label = (batch['sequential'] > self.num_classes).any(dim=1)
+            support_label = self.accelerator.gather(support_label).cpu().numpy().tolist()
             batch_label = self.accelerator.gather(batch['label']).cpu().numpy().tolist()
             del batch['idx']
             with torch.no_grad():
                 y = self.model.predict_class(batch, top_k=topk, device=device)
             y = self.accelerator.gather(y).cpu().numpy().tolist()
-            for idx, y_i, label_i in zip(idxs, y, batch_label):
-                y_pred[idx] = y_pred[idx] | (label_i not in y_i)
+            for idx, y_i, label_i, s_label in zip(idxs, y, batch_label, support_label):
+                y_pred[idx] = y_pred[idx] | (label_i not in y_i or s_label)
             progress_bar.update(1)
         progress_bar.close()
         idxs = list(y_pred.keys())
