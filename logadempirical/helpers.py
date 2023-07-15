@@ -13,7 +13,7 @@ def arg_parser():
 
     # input parameters
     parser.add_argument("--model_name", help="which model to use", default="DeepLog",
-                        choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog"])
+                        choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog" , "LogBert"])
     parser.add_argument("--dataset_name", help="which dataset to use", default="HDFS",
                         choices=["HDFS", "BGL", "Thunderbird", "Spirit", "Hadoop"])
     parser.add_argument("--device", help="hardware device", default="cpu")

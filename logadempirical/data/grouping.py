@@ -72,7 +72,6 @@ def time_sliding_window(raw_data, window_size=60, step_size=60):
     """
     log_size = raw_data.shape[0]
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
-    # print(label_data[:10])
     logkey_data, log_template_data, content_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
     new_data = []
     start_end_index_pair = set()
@@ -138,7 +137,6 @@ def fixed_window(raw_data, window_size, step_size):
     """
     log_size = raw_data.shape[0]
     label_data, time_data = raw_data.iloc[:, 1], raw_data.iloc[:, 0]
-    # print(label_data[:10])
     logkey_data, log_template_data, content_data = raw_data.iloc[:, 2], raw_data.iloc[:, 3], raw_data.iloc[:, 4]
     new_data = []
     start_end_index_pair = set()

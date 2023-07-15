@@ -23,7 +23,7 @@ class Vocab(object):
 
         for line in logs:
             self.itos.extend(line)
-
+        self.mask_index = 4
         self.itos = ['padding'] + list(set(self.itos))
         # self.pad_index = len(self.itos)
         # self.itos.append("padding")
@@ -60,7 +60,6 @@ class Vocab(object):
     def save_vocab(self, file_path):
         with open(file_path, 'wb') as f:
             pickle.dump(self, f)
-
     @staticmethod
     def load_vocab(file_path):
         with open(file_path, 'rb') as f:

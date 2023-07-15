@@ -74,7 +74,7 @@ def load_features(data_path, is_unsupervised=True, min_len=0, is_train=True):
 
 
 def sliding_window(data: List[Tuple[List[str], int]],
-                   window_size: int,
+                   window_size: int = 40,
                    is_train: bool = True,
                    vocab: Optional[Any] = None,
                    is_unsupervised: bool = True,
