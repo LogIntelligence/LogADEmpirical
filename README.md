@@ -38,6 +38,21 @@ python main_run.py --folder=bgl/ --log_file=BGL.log --dataset_name=bgl --model_n
 python main_run.py --help
 ```
 
+
+### Docker
+
+#### Build
+
+```
+docker build -t lad .
+```
+
+#### Run
+
+```
+docker run --gpus all -it lad
+```
+
 ## Citation
 If you find the code and models useful for your research, please cite the following paper:
 ```
