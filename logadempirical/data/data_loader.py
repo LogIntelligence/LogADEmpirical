@@ -5,6 +5,7 @@ import pickle
 from sklearn.utils import shuffle
 from logging import Logger
 from typing import List, Tuple
+import pdb
 
 
 def process_dataset(logger: Logger,
@@ -73,6 +74,7 @@ def process_dataset(logger: Logger,
                 window_size=window_size,
                 step_size=step_size
             )
+            pdb.set_trace()
 
     elif grouping == "session":
         if dataset_name == "HDFS":

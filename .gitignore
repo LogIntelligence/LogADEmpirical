@@ -1,0 +1,9 @@
+/.idea
+.DS_Store
+/dataset/*/
+*.ipynb
+*.pyc
+*.pkl
+*.pt
+dataset/test.json
+dataset/train.json

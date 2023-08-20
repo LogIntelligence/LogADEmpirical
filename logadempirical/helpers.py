@@ -9,7 +9,7 @@ def arg_parser():
     """
     parser = ArgumentParser()
 
-    parser.add_argument("--config_file", default="config/deeplog.yaml", help="config file name")
+    parser.add_argument("--config_file", default="config/deeplog1.yaml", help="config file name")
 
     # input parameters
     parser.add_argument("--model_name", help="which model to use", default="DeepLog",
