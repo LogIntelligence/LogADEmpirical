@@ -1,0 +1,25 @@
+# dataset configuration
+data_dir: ./dataset/HDFS
+dataset_name: HDFS
+log_file: HDFS.log
+embeddings: embeddings_average.json
+
+# data preprocessing
+grouping: session
+session_level: entry
+sequential: true
+semantic: false
+quantitative: false
+
+# model configuration
+model_name: DeepLog
+embedding_dim: 300
+dropout: 0.1
+hidden_size: 128
+num_layers: 2
+topk: 9
+
+# optimizer configuration
+optimizer: adam
+adam_beta1: 0.9
+adam_beta2: 0.999

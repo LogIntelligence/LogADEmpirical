@@ -13,7 +13,7 @@ def arg_parser():
 
     # input parameters
     parser.add_argument("--model_name", help="which model to use", default="DeepLog",
-                        choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog" , "LogBert"])
+                        choices=["DeepLog", "LogAnomaly", "LogRobust", "NeuralLog", "CNN", "PLELog", "LogBERT"])
     parser.add_argument("--dataset_name", help="which dataset to use", default="HDFS",
                         choices=["HDFS", "BGL", "Thunderbird", "Spirit", "Hadoop"])
     parser.add_argument("--device", help="hardware device", default="cpu")
@@ -50,7 +50,7 @@ def arg_parser():
     parser.add_argument("--accumulation_step", default=1, type=int, help="gradient accumulation step")
     parser.add_argument("--optimizer", default="adam", help="optimizer type",
                         choices=["adam", "sgd", "adamw", "adagrad", "adadelta", "rmsprop"])
-    parser.add_argument("--weight_decay", default=0.1, type=float, help="weight decay")
+    parser.add_argument("--weight_decay", default=0.0, type=float, help="weight decay")
     parser.add_argument("--adam_beta1", default=0.9, type=float, help="adam beta1")
     parser.add_argument("--adam_beta2", default=0.999, type=float, help="adam beta2")
     parser.add_argument("--epsilon", default=1e-8, type=float, help="epsilon")

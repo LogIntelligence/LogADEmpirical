@@ -1,0 +1,47 @@
+# dataset configuration
+data_dir: ./dataset/HDFS
+dataset_name: HDFS
+log_file: HDFS.log
+embeddings: embeddings_average.json
+
+# data preprocessing
+grouping: session
+session_level: entry
+is_chronological: true
+sequential: false
+semantic: true
+quantitative: false
+window_size: 20
+step_size: 1
+history_size: 10
+
+# model configuration
+model_name: LogRobust
+embedding_dim: 300
+dropout: 0.1
+hidden_size: 128
+num_layers: 2
+n_class: 2
+
+# optimizer configuration
+optimizer: adamw
+adam_beta1: 0.9
+adam_beta2: 0.999
+epsilon: 1.0e-08
+lr: 0.01
+optim_momentum: 0.99
+scheduler: linear
+warmup_rate: 0.1
+weight_decay: 0.0001
+
+# training configuration
+accumulation_step: 1
+batch_size: 2048
+max_epoch: 10
+
+# common configuration
+output_dir: ./output/
+resume: false
+train_size: 0.01
+valid_ratio: 0.1
+train: true

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pdb
 
 import numpy as np
 import torch
@@ -6,12 +7,23 @@ from torch.utils.data import Dataset
 from collections import defaultdict
 import random
 from logadempirical.data.vocab import Vocab
+from typing import List, Tuple, Optional, Any
 
 
-class LogDataset(Dataset):
-    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None, idxs=None):
-        if sequentials is None and quantitatives is None and semantics is None:
-            raise ValueError('Provide at least one feature type')
+class BaseDataset(Dataset):
+    def __init__(self,
+                 sequentials: Optional[List[List[int]]] = None,
+                 quantitatives: Optional[List[List[float]]] = None,
+                 semantics: Optional[List[List[float]]] = None,
+                 labels: Optional[List[int]] = None,
+                 idxs: Optional[List[int]] = None):
+        """ Base Dataset class for log data
+        Parameters
+        ----------
+        sequentials: List of log sequences
+        labels: List of labels
+        idxs: List of indexes
+        """
         self.sequentials = sequentials
         self.quantitatives = quantitatives
         self.semantics = semantics
@@ -20,6 +32,19 @@ class LogDataset(Dataset):
 
     def __len__(self):
         return len(self.labels)
+
+    def __getitem__(self, idx):
+        raise NotImplementedError
+
+    def collate_fn(self, batch):
+        raise NotImplementedError
+
+
+class LogDataset(BaseDataset):
+    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None, idxs=None):
+        super(LogDataset, self).__init__(sequentials, quantitatives, semantics, labels, idxs)
+        if self.sequentials is None and self.quantitatives is None and self.semantics is None:
+            raise ValueError('Provide at least one feature type')
 
     def __getitem__(self, idx):
         item = {'label': self.labels[idx], 'idx': self.idxs[idx]}
@@ -31,26 +56,68 @@ class LogDataset(Dataset):
             item['semantic'] = torch.from_numpy(np.array(self.semantics[idx])).float()
 
         return item
-class LogDatase_Bert(Dataset):
-    def __init__(self, log_corpus,vocab , seq_len, corpus_lines=None, encoding="utf-8", on_memory=True, predict_mode=False, mask_ratio=0.75 , idx=None):
+
+    # def collate_fn(self, batch, feature_name='semantic', padding_side="right"):
+    #     # pdb.set_trace()
+    #     return batch
+    #     max_length = max([len(b[feature_name]) for b in batch])
+    #     dimension = {k: batch[0][k][0].shape[0] for k in batch[0].keys() if k != 'label' and batch[0][k] is not None}
+    #     if padding_side == "right":
+    #         padded_batch = []
+    #         for b in batch:
+    #             sample = {}
+    #             for k, v in b.items():
+    #                 if k == 'label':
+    #                     sample[k] = v
+    #                 elif v is None:
+    #                     sample[k] = None
+    #                 else:
+    #                     sample[k] = torch.from_numpy(
+    #                         np.array(v + [np.zeros(dimension[k], )] * (max_length - len(v))))
+    #             padded_batch.append(sample)
+    #     elif padding_side == "left":
+    #         padded_batch = []
+    #         for b in batch:
+    #             sample = {}
+    #             for k, v in b.items():
+    #                 if k == 'label':
+    #                     sample[k] = v
+    #                 elif v is None:
+    #                     sample[k] = None
+    #                 else:
+    #                     sample[k] = torch.from_numpy(
+    #                         np.array([np.zeros(dimension[k], )] * (max_length - len(v)) + v))
+    #             padded_batch.append(sample)
+    #     else:
+    #         raise ValueError("padding_side should be either 'right' or 'left'")
+    #
+    #     # convert to tensor
+    #     padded_batch = {
+    #         k: torch.stack([sample[k] for sample in padded_batch])
+    #         for k in padded_batch[0].keys()
+    #     }
+    #     return padded_batch
+
+
+class MaskedDataset(BaseDataset):
+    def __init__(self, sequentials, vocab, seq_len, encoding="utf-8", on_memory=True,
+                 predict_mode=False, mask_ratio=0.75, idx=None):
         """
 
-        :param corpus: log sessions/line
+        :param sequentials: log sessions/line
         :param vocab: log events collection including pad, ukn ...
         :param seq_len: max sequence length
-        :param corpus_lines: number of log sessions
         :param encoding:
         :param on_memory:
         :param predict_mode: if predict
         """
+        super(MaskedDataset, self).__init__(sequentials=sequentials, labels=None, idxs=idx)
         self.vocab = vocab
         self.seq_len = seq_len
         self.idxs = idx
         self.on_memory = on_memory
         self.encoding = encoding
         self.predict_mode = predict_mode
-        self.log_corpus = log_corpus
-        self.corpus_lines = len(log_corpus)
         self.mask_ratio = mask_ratio
         self.pad_index = 0
         self.unk_index = 1
@@ -59,21 +126,20 @@ class LogDatase_Bert(Dataset):
         self.mask_index = 4
 
     def __len__(self):
-        return self.corpus_lines
+        return len(self.sequentials)
 
     def __getitem__(self, idx):
-        k= self.log_corpus[idx]
+        seq = self.sequentials[idx]
 
-        k_masked, k_label = self.random_item(k)
+        masked, label = self.random_item(list(seq))
 
         # [CLS] tag = SOS tag, [SEP] tag = EOS tag
-        k = [self.sos_index] + k_masked
-        k_label = [self.pad_index] + k_label
-        # item = {"label":k_label ,'idx': self.idxs[idx] , "sequential":k}
+        seq = [self.sos_index] + masked
+        label = [self.pad_index] + label
 
-        return k , idx, k_label 
-    def random_item(self, k,):
-        tokens = list(k)
+        return seq, idx, label
+
+    def random_item(self, tokens):
         output_label = []
         for i, token in enumerate(tokens):
             prob = random.random()
@@ -108,7 +174,7 @@ class LogDatase_Bert(Dataset):
 
     def collate_fn(self, batch, percentile=100, dynamical_pad=True):
         lens = [len(seq[0]) for seq in batch]
-        
+
         # find the max len in each batch
         if dynamical_pad:
             # dynamical padding
@@ -119,12 +185,11 @@ class LogDatase_Bert(Dataset):
             # fixed length padding
             seq_len = self.seq_len
 
-        output = {"sequential":[] , "label" :[] , "idx":[]}
+        output = {"sequential": [], "label": [], "idx": []}
         for seq in batch:
             bert_input = seq[0][:seq_len]
             bert_idx = seq[1]
             bert_label = seq[2][:seq_len]
-
 
             padding = [self.vocab.pad_index for _ in range(seq_len - len(bert_input))]
             bert_input.extend(padding), bert_label.extend(padding)
@@ -135,47 +200,43 @@ class LogDatase_Bert(Dataset):
         output["sequential"] = torch.tensor(np.array(output["sequential"]), dtype=torch.long)
         output["label"] = torch.tensor(np.array(output["label"]), dtype=torch.long)
         output["idx"] = torch.tensor(np.array(output["idx"]), dtype=torch.long)
-
-
         return output
-        
 
-
-def data_collate(batch, feature_name='semantic', padding_side="right"):
-    max_length = max([len(b[feature_name]) for b in batch])
-    dimension = {k: batch[0][k][0].shape[0] for k in batch[0].keys() if k != 'label' and batch[0][k] is not None}
-    if padding_side == "right":
-        padded_batch = []
-        for b in batch:
-            sample = {}
-            for k, v in b.items():
-                if k == 'label':
-                    sample[k] = v
-                elif v is None:
-                    sample[k] = None
-                else:
-                    sample[k] = torch.from_numpy(
-                        np.array(v + [np.zeros(dimension[k], )] * (max_length - len(v))))
-            padded_batch.append(sample)
-    elif padding_side == "left":
-        padded_batch = []
-        for b in batch:
-            sample = {}
-            for k, v in b.items():
-                if k == 'label':
-                    sample[k] = v
-                elif v is None:
-                    sample[k] = None
-                else:
-                    sample[k] = torch.from_numpy(
-                        np.array([np.zeros(dimension[k], )] * (max_length - len(v)) + v))
-            padded_batch.append(sample)
-    else:
-        raise ValueError("padding_side should be either 'right' or 'left'")
-
-    # convert to tensor
-    padded_batch = {
-        k: torch.stack([sample[k] for sample in padded_batch])
-        for k in padded_batch[0].keys()
-    }
-    return padded_batch
+# def data_collate(batch, feature_name='semantic', padding_side="right"):
+#     max_length = max([len(b[feature_name]) for b in batch])
+#     dimension = {k: batch[0][k][0].shape[0] for k in batch[0].keys() if k != 'label' and batch[0][k] is not None}
+#     if padding_side == "right":
+#         padded_batch = []
+#         for b in batch:
+#             sample = {}
+#             for k, v in b.items():
+#                 if k == 'label':
+#                     sample[k] = v
+#                 elif v is None:
+#                     sample[k] = None
+#                 else:
+#                     sample[k] = torch.from_numpy(
+#                         np.array(v + [np.zeros(dimension[k], )] * (max_length - len(v))))
+#             padded_batch.append(sample)
+#     elif padding_side == "left":
+#         padded_batch = []
+#         for b in batch:
+#             sample = {}
+#             for k, v in b.items():
+#                 if k == 'label':
+#                     sample[k] = v
+#                 elif v is None:
+#                     sample[k] = None
+#                 else:
+#                     sample[k] = torch.from_numpy(
+#                         np.array([np.zeros(dimension[k], )] * (max_length - len(v)) + v))
+#             padded_batch.append(sample)
+#     else:
+#         raise ValueError("padding_side should be either 'right' or 'left'")
+#
+#     # convert to tensor
+#     padded_batch = {
+#         k: torch.stack([sample[k] for sample in padded_batch])
+#         for k in padded_batch[0].keys()
+#     }
+#     return padded_batch

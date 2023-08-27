@@ -9,7 +9,7 @@ from sklearn.utils import shuffle
 from logadempirical.data import process_dataset
 from logadempirical.data.vocab import Vocab
 from logadempirical.data.feature_extraction import load_features, sliding_window
-from logadempirical.data.dataset import LogDataset , LogDatase_Bert
+from logadempirical.data.dataset import LogDataset, MaskedDataset
 from logadempirical.helpers import arg_parser, get_optimizer
 from logadempirical.models import get_model, ModelConfig
 from logadempirical.trainer import Trainer
@@ -20,6 +20,8 @@ import argparse
 from typing import List, Tuple, Optional
 import numpy as np
 from logadempirical.models.LogBert.predict_log import predict
+import pdb
+
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     datefmt="%m/%d/%Y %H:%M:%S",
@@ -100,13 +102,15 @@ def build_model(args, vocab_size):
             criterion=torch.nn.CrossEntropyLoss(ignore_index=0),
             use_semantic=args.semantic
         )
-    elif args.model_name == "LogBert":
+    elif args.model_name == "LogBERT":
         model_config = ModelConfig(
             num_layers=args.num_layers,
             embedding_dim=args.embedding_dim,
             dropout=args.dropout,
             criterion=torch.nn.CrossEntropyLoss(ignore_index=0),
-            use_semantic=args.semantic
+            vocab_size=vocab_size,
+            use_semantic=args.semantic,
+            num_heads=args.num_heads,
         )
     elif args.model_name == "LogRobust":
         model_config = ModelConfig(
@@ -139,9 +143,8 @@ def build_model(args, vocab_size):
             num_heads=args.num_heads,
             criterion=torch.nn.CrossEntropyLoss()
         )
-
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"{args.model_name} is not implemented")
     model = get_model(args.model_name, model_config)
     return model
 
@@ -177,7 +180,7 @@ def train_and_eval(args: argparse.Namespace,
     data = shuffle(data)
     n_valid = int(len(data) * args.valid_ratio)
     train_data, valid_data = data[:-n_valid], data[-n_valid:]
-    
+
     sequentials, quantitatives, semantics, labels, idxs, _ = sliding_window(
         train_data,
         vocab=vocab,
@@ -189,18 +192,19 @@ def train_and_eval(args: argparse.Namespace,
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    sequentials_normal = []
-    sequentials_abnormal = []
-    if(args.model_name == "LogBert"):
+    # sequentials_normal = []
+    # sequentials_abnormal = []
+    if args.model_name == "LogBERT":
 
-        for i in range(len(labels)):
-            if labels[i]==0 or labels[i]=="0":
-                sequentials_normal.append(sequentials[i])   
-            else :
-                sequentials_abnormal.append(sequentials[i])
-        train_dataset = LogDatase_Bert(log_corpus=sequentials_normal , vocab=vocab , seq_len=32, corpus_lines= None ,idx= idxs )
+        # for i in range(len(labels)):
+        #     if labels[i] == 0 or labels[i] == "0":
+        #         sequentials_normal.append(sequentials[i])
+        #     else:
+        #         sequentials_abnormal.append(sequentials[i])
+        train_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=idxs)
     else:
-        train_dataset = LogDataset(sequentials, quantitatives, semantics, labels, idxs)
+        train_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
+                                   labels=labels, idxs=idxs)
 
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         valid_data,
@@ -213,32 +217,32 @@ def train_and_eval(args: argparse.Namespace,
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    sequentials_normal = []
-    if(args.model_name == "LogBert"):
-
-        for i in range(len(labels)):
-            if labels[i]==0 or labels[i]=="0":
-                sequentials_normal.append(sequentials[i])   
-            else :
-                sequentials_abnormal.append(sequentials[i])
-        valid_dataset_normal = LogDatase_Bert(log_corpus=sequentials_normal , vocab=vocab , seq_len=32, corpus_lines= None , idx = sequence_idxs )
-        valid_dataset_abnormal = LogDatase_Bert(log_corpus=sequentials_abnormal , vocab=vocab , seq_len=32, corpus_lines= None , idx = sequence_idxs)
-        logger.info(f"Train dataset: {len(train_dataset)}")
-        logger.info(f"Valid dataset: {len(valid_dataset_abnormal) +len(valid_dataset_normal)}")
-        valid_dataset = valid_dataset_normal
+    logger.info(f"")
+    # sequentials_normal = []
+    if args.model_name == "LogBERT":
+        # for i in range(len(labels)):
+        #     if labels[i] == 0 or labels[i] == "0":
+        #         sequentials_normal.append(sequentials[i])
+        #     else:
+        #         sequentials_abnormal.append(sequentials[i])
+        valid_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=sequence_idxs)
+        # valid_dataset_abnormal = MaskedDataset(sequentials=sequentials_abnormal, vocab=vocab, seq_len=32,
+        #                                        idx=sequence_idxs)
+        # logger.info(f"Train dataset: {len(train_dataset)}")
+        # logger.info(f"Valid dataset: {len(valid_dataset_abnormal) + len(valid_dataset_normal)}")
+        # valid_dataset = valid_dataset_normal
     else:
         valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
 
-        logger.info(f"Train dataset: {len(train_dataset)}")
-        logger.info(f"Valid dataset: {len(valid_dataset)}")
+    logger.info(f"Train dataset: {len(train_dataset)}")
+    logger.info(f"Valid dataset: {len(valid_dataset)}")
     optimizer = get_optimizer(args, model.parameters())
 
     device = accelerator.device
-    device = "cpu"
     model = model.to(device)
 
     logger.info(f"Start training {args.model_name} model on {device} device")
-
+    # pdb.set_trace()
     trainer = Trainer(
         model,
         train_dataset,
@@ -259,17 +263,18 @@ def train_and_eval(args: argparse.Namespace,
         trainer.load_model(f"{args.output_dir}/models/{args.model_name}.pt")
     args.train = True
     if args.train:
-            train_loss, val_loss, val_acc = trainer.train(device=device,
+        train_loss, val_loss, val_acc = trainer.train(device=device,
                                                       save_dir=f"{args.output_dir}/models",
                                                       model_name=args.model_name,
                                                       topk=1 if not is_unsupervised else args.topk)
-            logger.info(f"Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
-    if args.model_name == "LogBert" :
+        logger.info(f"Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
+    if args.model_name == "LogBERT":
         # print("len" ,len(valid_dataset_abnormal))
         # loss_normal , loss_abnormal = trainer.predict_logbert(valid_dataset_normal , valid_dataset_abnormal ,device = device)
         # print(f"loss_normal: {loss_normal} , loss_abnormal : {loss_abnormal}")
         print("compute valid")
-        acc , pre , rec , f1 = predict(trainer.model.to(device) , abnormal_dataset=valid_dataset_abnormal , normal_dataset= valid_dataset_normal ,device=device)
+        acc, pre, rec, f1 = predict(trainer.model.to(device), abnormal_dataset=valid_dataset_abnormal,
+                                    normal_dataset=valid_dataset_normal, device=device)
         print(f"Validation Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
     elif is_unsupervised:
         acc, recommend_topk = trainer.predict_unsupervised(valid_dataset,
@@ -311,23 +316,24 @@ def train_and_eval(args: argparse.Namespace,
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    if args.model_name == "LogBert":
-        sequentials_normal= []
-        sequentials_abnormal=[]
+    if args.model_name == "LogBERT":
+        sequentials_normal = []
+        sequentials_abnormal = []
         for i in range(len(labels)):
-            if labels[i]==0 or labels[i]=="0":
-                sequentials_normal.append(sequentials[i])   
-            else :
+            if labels[i] == 0 or labels[i] == "0":
+                sequentials_normal.append(sequentials[i])
+            else:
                 sequentials_abnormal.append(sequentials[i])
-        test_dataset_normal = LogDatase_Bert(log_corpus=sequentials_normal , vocab=vocab , seq_len=32, corpus_lines= None , idx = sequence_idxs )
-        test_dataset_abnormal = LogDatase_Bert(log_corpus=sequentials_abnormal , vocab=vocab , seq_len=32, corpus_lines= None , idx = sequence_idxs)
-        logger.info(f"Test dataset: {len(test_dataset_normal)+len(test_dataset_abnormal)}")
+        test_dataset_normal = MaskedDataset(sequentials=sequentials_normal, vocab=vocab, seq_len=32, idx=sequence_idxs)
+        test_dataset_abnormal = MaskedDataset(sequentials=sequentials_abnormal, vocab=vocab, seq_len=32,
+                                              idx=sequence_idxs)
+        logger.info(f"Test dataset: {len(test_dataset_normal) + len(test_dataset_abnormal)}")
         print("compute valid")
-        acc , pre , rec , f1 = predict(trainer.model.to(device) , abnormal_dataset=test_dataset_abnormal , normal_dataset= test_dataset_normal ,device=device)
+        acc, pre, rec, f1 = predict(trainer.model.to(device), abnormal_dataset=test_dataset_abnormal,
+                                    normal_dataset=test_dataset_normal, device=device)
         print(f"Train Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
         return 0
-        
-        
+
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
@@ -358,13 +364,15 @@ def run(args):
     train_path, test_path = process_dataset(logger, data_dir=args.data_dir, output_dir=args.output_dir,
                                             log_file=args.log_file,
                                             dataset_name=args.dataset_name, grouping=args.grouping,
-                                            window_size=40, step_size=args.step_size,
+                                            window_size=args.window_size, step_size=args.step_size,
                                             train_size=args.train_size, is_chronological=args.is_chronological,
                                             session_type=args.session_level)
 
+    # pdb.set_trace()
+
     os.makedirs(f"{args.output_dir}/vocabs", exist_ok=True)
     vocab_path = f"{args.output_dir}/vocabs/{args.model_name}.pkl"
-    is_unsupervised = args.model_name in ["LogAnomaly", "DeepLog" ]
+    is_unsupervised = args.model_name in ["LogAnomaly", "DeepLog", "LogBERT"]
     log_vocab = build_vocab(vocab_path,
                             args.data_dir,
                             train_path,
@@ -385,10 +393,13 @@ def run(args):
 if __name__ == "__main__":
     parser = arg_parser()
     args = parser.parse_args()
-    # if args.config_file is not None and os.path.exists(args.config_file):
-    #     config_file = args.config_file
-    #     with open(config_file, "r") as f:
-    #         config = yaml.load(f, Loader=yaml.FullLoader)
-    #         args = argparse.Namespace(**config)
-    #     print(f"Loaded config from {config_file}!")
+    if args.config_file is not None and os.path.exists(args.config_file):
+        config_file = args.config_file
+        with open(config_file, "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+            config_args = argparse.Namespace(**config)
+            for k, v in config_args.__dict__.items():
+                if v is not None:
+                    setattr(args, k, v)
+        print(f"Loaded config from {config_file}!")
     run(args)

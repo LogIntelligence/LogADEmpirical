@@ -136,7 +136,7 @@ class LogRobust(nn.Module):
 
     def predict_class(self, src, device="cpu"):
         del src['label']
-        return torch.argmax(self.forward(src, device=device).probabilities, dim=1)
+        return torch.max(self.forward(src, device=device).probabilities, dim=1).indices
 
 
 # log key add embedding

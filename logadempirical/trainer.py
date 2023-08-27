@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import Counter
 
 import numpy as np
 from tqdm import tqdm
@@ -74,7 +75,7 @@ class Trainer:
         y_pred = []
         y_true = []
         losses = []
-        
+
         for idx, batch in enumerate(val_loader):
             del batch['idx']
             # batch = {k: v.to(device) for k, v in batch.items()}
@@ -90,22 +91,22 @@ class Trainer:
         y_pred = np.concatenate(y_pred)
         y_true = np.concatenate(y_true)
         loss = np.mean(losses)
-        # if topk > 1:
-        #     acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
-        # else:
-        #     acc = accuracy_score(y_true, np.argmax(y_pred, axis=1))
-        return loss, 1
+        if topk > 1:
+            acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
+        else:
+            acc = accuracy_score(y_true, np.argmax(y_pred, axis=1))
+        return loss, acc
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):
-        if model_name == "LogBert":
-            train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=5,
-                                      collate_fn=self.train_dataset.collate_fn, drop_last=True)
-            val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, num_workers=5,
-                                       collate_fn=self.train_dataset.collate_fn, drop_last=True)
-            
-        else :
-            train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
-            val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False)
+        # if model_name == "LogBERT":
+        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size)  # ,# num_workers=5,
+        # collate_fn=self.train_dataset.collate_fn)
+        val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size)  # ,# num_workers=5,
+        # collate_fn=self.valid_dataset.collate_fn)
+
+        # else:
+        #     train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        #     val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
         self.model, self.optimizer, train_loader, val_loader = self.accelerator.prepare(
             self.model, self.optimizer, train_loader, val_loader
@@ -129,8 +130,9 @@ class Trainer:
             if self.logger is not None:
                 self.logger.debug(
                     f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
-                print(f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
-                
+                print(
+                    f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
+
             total_train_loss += train_loss
             total_val_loss += val_loss
             total_val_acc += val_acc
@@ -188,6 +190,7 @@ class Trainer:
                 y_pos = torch.where(y_pred == label.unsqueeze(1))[1] + 1
                 y_topk.extend(y_pos.cpu().numpy().tolist())
             return int(np.ceil(np.percentile(y_topk, 0.99)))
+
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
         self.model, test_loader = self.accelerator.prepare(self.model, test_loader)
@@ -199,26 +202,26 @@ class Trainer:
         else:
             return self.predict_unsupervised_helper(test_loader, y_true, topk, device, num_sessions)
 
-
-    def predict_logbert(self , valid_data_normal , valid_data_abnormal , device : str = "cpu") :
+    def predict_logbert(self, valid_data_normal, valid_data_abnormal, device: str = "cpu"):
         self.model.eval()
         loss_normal = 0
         loss_abnormal = 0
         batch_normal = 0
         batch_abnormal = 0
         print("***********")
-        valid_loader_normal = DataLoader(valid_data_normal , batch_size=128 ,collate_fn=valid_data_normal.collate_fn ,num_workers=5 , drop_last = True)
-        valid_loader_abnormal = DataLoader(valid_data_abnormal , batch_size = 128 ,collate_fn=valid_data_abnormal.collate_fn , num_workers=5 , drop_last= True)
+        valid_loader_normal = DataLoader(valid_data_normal, batch_size=128, collate_fn=valid_data_normal.collate_fn,
+                                         num_workers=5, drop_last=True)
+        valid_loader_abnormal = DataLoader(valid_data_abnormal, batch_size=128,
+                                           collate_fn=valid_data_abnormal.collate_fn, num_workers=5, drop_last=True)
         for batch in valid_loader_normal:
-            batch_normal+=1
-            out = self.model(batch,device)
-            loss_normal += out.loss 
+            batch_normal += 1
+            out = self.model(batch, device)
+            loss_normal += out.loss
         for batch in valid_loader_abnormal:
-            out = self.model(batch , device)
+            out = self.model(batch, device)
             loss_abnormal += out.loss
-            batch_abnormal+=1
-        return loss_normal/batch_normal , loss_abnormal/batch_abnormal
-    
+            batch_abnormal += 1
+        return loss_normal / batch_normal, loss_abnormal / batch_abnormal
 
     def predict_unsupervised_helper(self, test_loader, y_true, topk: int, device: str = 'cpu',
                                     num_sessions: Optional[List[int]] = None) -> Tuple[float, float, float, float]:

@@ -36,21 +36,14 @@ def get_model(model_name: str, config: ModelConfig):
             criterion=config.criterion,
             use_semantic=config.use_semantic
         )
-    elif model_name == "LogBert":
-        # model = BERT(vocab_size = config.vocab_size ,
-        #              hidden = config.hidden_size,
-        #              n_layers = config.num_layers,
-        #              attn_heads= 4,
-        #              is_logkey= True ,
-        #              is_time= False
-        #              )
-        bert = BERT(vocab_size=20,
-                     hidden=300,
-                     n_layers=4,
-                     attn_heads= 4,
-                     is_logkey=True,
-                     is_time=False)
-        model = BERTLog(bert , vocab_size = 20 ,criterion=config.criterion )
+    elif model_name == "LogBERT":
+        bert = BERT(vocab_size=config.vocab_size,
+                    hidden=config.embedding_dim,
+                    n_layers=config.num_layers,
+                    attn_heads=config.num_heads,
+                    is_logkey=True,
+                    is_time=False)
+        model = BERTLog(bert, vocab_size=config.vocab_size, criterion=config.criterion)
     elif model_name == 'CNN':
         model = CNN(
             embedding_dim=config.embedding_dim,
@@ -71,7 +64,7 @@ def get_model(model_name: str, config: ModelConfig):
             criterion=config.criterion
         )
     elif model_name == 'PLELog':
-        raise NotImplementedError
+        raise NotImplementedError("PLELog is not implemented yet")
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"{model_name} is not implemented yet")
     return model
