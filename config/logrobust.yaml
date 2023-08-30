@@ -24,15 +24,15 @@ num_layers: 2
 n_class: 2
 
 # optimizer configuration
-optimizer: adamw
+optimizer: adam
 adam_beta1: 0.9
 adam_beta2: 0.999
 epsilon: 1.0e-08
-lr: 0.01
+lr: 0.001
 optim_momentum: 0.99
 scheduler: linear
 warmup_rate: 0.1
-weight_decay: 0.0001
+weight_decay: 0.0
 
 # training configuration
 accumulation_step: 1

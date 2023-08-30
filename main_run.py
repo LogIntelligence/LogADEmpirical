@@ -2,6 +2,8 @@ import os
 import pickle
 from collections import Counter
 
+from random import seed
+
 import torch
 import yaml
 from sklearn.utils import shuffle
@@ -263,10 +265,10 @@ def train_and_eval(args: argparse.Namespace,
         trainer.load_model(f"{args.output_dir}/models/{args.model_name}.pt")
     args.train = True
     if args.train:
-        train_loss, val_loss, val_acc = trainer.train(device=device,
-                                                      save_dir=f"{args.output_dir}/models",
-                                                      model_name=args.model_name,
-                                                      topk=1 if not is_unsupervised else args.topk)
+        train_loss, val_loss, val_acc, args.topk = trainer.train(device=device,
+                                                                 save_dir=f"{args.output_dir}/models",
+                                                                 model_name=args.model_name,
+                                                                 topk=1 if not is_unsupervised else args.topk)
         logger.info(f"Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
     if args.model_name == "LogBERT":
         # print("len" ,len(valid_dataset_abnormal))
@@ -337,6 +339,7 @@ def train_and_eval(args: argparse.Namespace,
     test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
+        logger.info(f"Start predicting {args.model_name} model on {device} device with top-{args.topk} recommendation")
         acc, f1, pre, rec = trainer.predict_unsupervised(test_dataset,
                                                          session_labels,
                                                          topk=args.topk,

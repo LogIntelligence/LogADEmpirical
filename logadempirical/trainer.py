@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pdb
 from collections import Counter
 
 import numpy as np
@@ -12,6 +13,7 @@ from typing import Any, Optional, List, Union, Tuple
 import logging
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, top_k_accuracy_score
 from itertools import chain
+import statistics
 
 
 class Trainer:
@@ -92,14 +94,39 @@ class Trainer:
         y_true = np.concatenate(y_true)
         loss = np.mean(losses)
         if topk > 1:
-            acc = top_k_accuracy_score(y_true, y_pred, k=topk, labels=np.arange(self.num_classes))
+            for k in range(1, self.num_classes + 1):
+                acc = top_k_accuracy_score(y_true, y_pred, k=k, labels=np.arange(self.num_classes))
+                if acc >= 0.997:
+                    self.logger.info(f"Top-{k} accuracy: {acc}")
+                    return loss, acc, k
+            # y_pred_indices = torch.argsort(torch.tensor(y_pred), dim=1, descending=True)[:, :]
+            # pos = [np.where(y_pred_indices[i] == y_true[i])[0] for i in range(len(y_pred))]
+            # # pdb.set_trace()
+            # pos = [p[0] + 1 for p in pos if len(p) > 0]
+            # if len(pos) > 0:
+            #     # remove all 1 from pos
+            #     # pos = [p for p in pos if p > 1]
+            #     # self.logger.info(Counter(pos))
+            #     # self.logger.info(f"Percentile: {np.percentile(pos, 0.997)} - {np.percentile(pos, 0.95)} - {np.percentile(pos, 0.001)}")
+            #     p_mean = np.mean(pos)
+            #     p_sd = np.std(pos)
+            #     # 6 sigma rule
+            #     self.logger.info(Counter(pos))
+            #     pos = [p for p in pos if p_mean - 3 * p_sd <= p <= p_mean + 3 * p_sd]
+            #     self.logger.info(Counter(pos))
+            #     recommend_k = max(pos) if len(pos) > 0 else 1
+            #     self.logger.info(f"Recommend topk: {recommend_k}")
+            # else:
+            #     print("No correct prediction")
+            #     recommend_k = 1
+            # return loss, acc, recommend_k
         else:
             acc = accuracy_score(y_true, np.argmax(y_pred, axis=1))
-        return loss, acc
+            return loss, acc, 1
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):
         # if model_name == "LogBERT":
-        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size)  # ,# num_workers=5,
+        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)  # ,# num_workers=5,
         # collate_fn=self.train_dataset.collate_fn)
         val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size)  # ,# num_workers=5,
         # collate_fn=self.valid_dataset.collate_fn)
@@ -126,7 +153,7 @@ class Trainer:
         total_val_acc = 0
         for epoch in range(self.no_epochs):
             train_loss = self._train_epoch(train_loader, device, self.scheduler, progress_bar)
-            val_loss, val_acc = self._valid_epoch(val_loader, device, topk=topk)
+            val_loss, val_acc, valid_k = self._valid_epoch(val_loader, device, topk=topk)
             if self.logger is not None:
                 self.logger.debug(
                     f"Epoch {epoch + 1}||Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f} - Val Acc: {val_acc:.4f}")
@@ -138,8 +165,10 @@ class Trainer:
             total_val_acc += val_acc
             if save_dir is not None and model_name is not None:
                 self.save_model(save_dir, model_name)
+        _, _, train_k = self._valid_epoch(train_loader, device, topk=topk)
+        self.logger.info(f"Train top-{topk}: {train_k}, Valid top-{topk}: {valid_k}")
         self.save_model(save_dir, model_name)
-        return total_train_loss / self.no_epochs, val_loss, val_acc
+        return total_train_loss / self.no_epochs, val_loss, val_acc, max(train_k, valid_k)
 
     def predict_supervised(self, dataset, y_true, device: str = 'cpu'):
         test_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)

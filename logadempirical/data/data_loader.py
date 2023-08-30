@@ -78,6 +78,9 @@ def process_dataset(logger: Logger,
 
     elif grouping == "session":
         if dataset_name == "HDFS":
+            # get first 10% of df as training data
+            # train_df = df.iloc[:int(len(df) * train_size), :]
+            # test_df = df.iloc[int(len(df) * train_size):, :]
             id_regex = r'(blk_-?\d+)'
             label_dict = {}
             blk_label_file = os.path.join(data_dir, "anomaly_label.csv")
@@ -89,6 +92,8 @@ def process_dataset(logger: Logger,
             n_train = int(len(window_df) * train_size)
             train_window = window_df[:n_train]
             test_window = window_df[n_train:]
+            # train_window = session_window(train_df, id_regex, label_dict, window_size=int(window_size))
+            # test_window = session_window(df, id_regex, label_dict, window_size=int(window_size))
         elif dataset_name == "BGL":
             # df["NodeId"] = df["Node"].apply(lambda x: str(x).split(":")[0])
             window_df = session_window_bgl(df)
