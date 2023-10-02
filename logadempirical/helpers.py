@@ -78,6 +78,8 @@ def arg_parser():
 
     # common
     parser.add_argument("--dropout", default=0.1, type=float, help="dropout rate of transformers model")
+    parser.add_argument("--remove_duplicates", default=False, action='store_true',
+                        help="remove duplicate sequences in training data")
 
     return parser
 

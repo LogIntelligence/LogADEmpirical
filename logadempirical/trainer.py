@@ -124,15 +124,11 @@ class Trainer:
             return loss, acc, 1
 
     def train(self, device: str = 'cpu', save_dir: str = None, model_name: str = None, topk: int = 1):
-        # if model_name == "LogBERT":
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)  # ,# num_workers=5,
         # collate_fn=self.train_dataset.collate_fn)
         val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size)  # ,# num_workers=5,
         # collate_fn=self.valid_dataset.collate_fn)
 
-        # else:
-        #     train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
-        #     val_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False)
         self.model.to(device)
         self.model, self.optimizer, train_loader, val_loader = self.accelerator.prepare(
             self.model, self.optimizer, train_loader, val_loader

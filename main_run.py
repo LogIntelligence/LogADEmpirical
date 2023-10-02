@@ -198,12 +198,11 @@ def train_and_eval(args: argparse.Namespace,
     if args.model_name == "LogBERT":
         train_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=idxs)
     else:
-        pdb.set_trace()
         logger.info(f"Train dataset: {len(sequentials)}")
         train_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
-                                   is_unsupervised=is_unsupervised, labels=labels, idxs=idxs, remove_duplicates=True)
+                                   is_unsupervised=is_unsupervised, labels=labels, idxs=idxs,
+                                   remove_duplicates=args.remove_duplicates)
         logger.info(f"Train dataset: {len(train_dataset)}")
-        pdb.set_trace()
 
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         valid_data,
