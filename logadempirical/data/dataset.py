@@ -15,20 +15,76 @@ class BaseDataset(Dataset):
                  sequentials: Optional[List[List[int]]] = None,
                  quantitatives: Optional[List[List[float]]] = None,
                  semantics: Optional[List[List[float]]] = None,
+                 is_unsupervised: bool = True,
                  labels: Optional[List[int]] = None,
-                 idxs: Optional[List[int]] = None):
+                 idxs: Optional[List[int]] = None,
+                 remove_duplicates: bool = True):
         """ Base Dataset class for log data
         Parameters
         ----------
         sequentials: List of log sequences
+        quantitatives: List of quantitative features
+        semantics: List of semantic features
+        is_unsupervised: unsupervised or supervised
         labels: List of labels
         idxs: List of indexes
+        remove_duplicates: remove duplicates from data
         """
         self.sequentials = sequentials
         self.quantitatives = quantitatives
         self.semantics = semantics
+        self.is_unsupervised = is_unsupervised
         self.labels = labels
         self.idxs = idxs
+        self.weights = []
+        if remove_duplicates:
+            if self.sequentials is None:
+                raise ValueError('Provide sequentials to remove duplicates')
+            self.remove_duplicates()
+
+    def remove_duplicates(self):
+        self.remove_duplicates_from_data(self.sequentials)
+
+    def remove_duplicates_from_data(self, data):
+        """
+        remove duplicates from data
+        :param data:
+        :return:
+        """
+        unique_data = {}
+        occurrences = defaultdict(int)
+        unique_labels = defaultdict(int)
+        for idx, (seq, label) in enumerate(zip(data, self.labels)):
+            if self.is_unsupervised:
+                sample = tuple(seq + [label])
+            else:
+                sample = tuple(seq)
+            if sample not in unique_data:
+                unique_data[sample] = idx
+                occurrences[sample] += 1
+                unique_labels[sample] = label
+            else:
+                occurrences[sample] += 1
+                if not self.is_unsupervised:
+                    unique_labels[sample] = min(unique_labels[sample], label)
+        if not self.is_unsupervised:
+            self.labels = [unique_labels[tuple(seq)] for seq in data]
+        filtered_idxs = sorted(unique_data.values())
+        n_data = len(self.sequentials)
+        for idx in filtered_idxs:
+            if self.is_unsupervised:
+                sample = tuple(data[idx] + [self.labels[idx]])
+            else:
+                sample = tuple(data[idx])
+            self.weights.append(occurrences[sample] / n_data)
+        self.sequentials = [data[idx] for idx in filtered_idxs]
+        if self.quantitatives is not None:
+            self.quantitatives = [self.quantitatives[idx] for idx in filtered_idxs]
+        if self.semantics is not None:
+            self.semantics = [self.semantics[idx] for idx in filtered_idxs]
+        self.labels = [self.labels[idx] for idx in filtered_idxs]
+        if self.idxs is not None:
+            self.idxs = [self.idxs[idx] for idx in filtered_idxs]
 
     def __len__(self):
         return len(self.labels)
@@ -41,13 +97,19 @@ class BaseDataset(Dataset):
 
 
 class LogDataset(BaseDataset):
-    def __init__(self, sequentials=None, quantitatives=None, semantics=None, labels=None, idxs=None):
-        super(LogDataset, self).__init__(sequentials, quantitatives, semantics, labels, idxs)
+    def __init__(self, sequentials=None, quantitatives=None, semantics=None, is_unsupervised=False, labels=None,
+                 idxs=None, remove_duplicates=True):
+        super(LogDataset, self).__init__(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
+                                         is_unsupervised=is_unsupervised, labels=labels, idxs=idxs,
+                                         remove_duplicates=remove_duplicates)
         if self.sequentials is None and self.quantitatives is None and self.semantics is None:
             raise ValueError('Provide at least one feature type')
 
     def __getitem__(self, idx):
-        item = {'label': self.labels[idx], 'idx': self.idxs[idx]}
+        try:
+            item = {'label': self.labels[idx], 'idx': self.idxs[idx]}
+        except:
+            pdb.set_trace()
         if self.sequentials is not None:
             item['sequential'] = torch.from_numpy(np.array(self.sequentials[idx]))
         if self.quantitatives is not None:

@@ -194,19 +194,16 @@ def train_and_eval(args: argparse.Namespace,
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    # sequentials_normal = []
-    # sequentials_abnormal = []
-    if args.model_name == "LogBERT":
 
-        # for i in range(len(labels)):
-        #     if labels[i] == 0 or labels[i] == "0":
-        #         sequentials_normal.append(sequentials[i])
-        #     else:
-        #         sequentials_abnormal.append(sequentials[i])
+    if args.model_name == "LogBERT":
         train_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=idxs)
     else:
+        pdb.set_trace()
+        logger.info(f"Train dataset: {len(sequentials)}")
         train_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
-                                   labels=labels, idxs=idxs)
+                                   is_unsupervised=is_unsupervised, labels=labels, idxs=idxs, remove_duplicates=True)
+        logger.info(f"Train dataset: {len(train_dataset)}")
+        pdb.set_trace()
 
     sequentials, quantitatives, semantics, labels, sequence_idxs, session_labels = sliding_window(
         valid_data,
@@ -219,22 +216,12 @@ def train_and_eval(args: argparse.Namespace,
         is_unsupervised=is_unsupervised,
         logger=logger
     )
-    logger.info(f"")
-    # sequentials_normal = []
+
     if args.model_name == "LogBERT":
-        # for i in range(len(labels)):
-        #     if labels[i] == 0 or labels[i] == "0":
-        #         sequentials_normal.append(sequentials[i])
-        #     else:
-        #         sequentials_abnormal.append(sequentials[i])
         valid_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=sequence_idxs)
-        # valid_dataset_abnormal = MaskedDataset(sequentials=sequentials_abnormal, vocab=vocab, seq_len=32,
-        #                                        idx=sequence_idxs)
-        # logger.info(f"Train dataset: {len(train_dataset)}")
-        # logger.info(f"Valid dataset: {len(valid_dataset_abnormal) + len(valid_dataset_normal)}")
-        # valid_dataset = valid_dataset_normal
     else:
-        valid_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+        valid_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
+                                   labels=labels, idxs=sequence_idxs, is_unsupervised=is_unsupervised)
 
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
@@ -336,7 +323,8 @@ def train_and_eval(args: argparse.Namespace,
         print(f"Train Result:: Acc: {acc:.4f}, Precision: {pre:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
         return 0
 
-    test_dataset = LogDataset(sequentials, quantitatives, semantics, labels, sequence_idxs)
+    test_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
+                              labels=labels, idxs=sequence_idxs, is_unsupervised=is_unsupervised)
     logger.info(f"Test dataset: {len(test_dataset)}")
     if is_unsupervised:
         logger.info(f"Start predicting {args.model_name} model on {device} device with top-{args.topk} recommendation")

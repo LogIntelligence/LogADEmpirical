@@ -82,6 +82,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
                    quantitative: bool = False,
                    semantic: bool = False,
                    logger: Optional[Any] = None,
+                   # remove_duplicates: bool = False
                    ) -> Any:
     """
     Sliding window for log sequence
@@ -96,6 +97,7 @@ def sliding_window(data: List[Tuple[List[str], int]],
     quantitative: bool: Whether to use quantitative features
     semantic: bool: Whether to use semantic features
     logger: Optional[Any]: Logger
+    # remove_duplicates: bool: Whether to remove duplicate events
 
     Returns
     -------

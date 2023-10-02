@@ -8,12 +8,11 @@ import os
 
 from transformers import get_scheduler
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from typing import Any, Optional, List, Union, Tuple
 import logging
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, top_k_accuracy_score
 from itertools import chain
-import statistics
 
 
 class Trainer:
@@ -310,3 +309,35 @@ class Trainer:
         if self.scheduler is not None:
             self.scheduler.load_state_dict(checkpoint['lr_scheduler'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
+
+    def creat_data_loader(self):
+        """
+        Create dataloader by removing duplicate sequences (same sequential and label) and adding weight for each
+        Returns: torch.utils.data.DataLoader
+        -------
+        """
+        # Remove duplicate sequences
+        # self.logger.info("Removing duplicate sequences")
+        # self.logger.info(f"Before removing: {len(self.train_dataset)}")
+        # self.logger.info(f"Before removing: {len(self.valid_dataset)}")
+        # self.train_dataset.remove_duplicates()
+        # self.valid_dataset.remove_duplicates()
+        # self.logger.info(f"After removing: {len(self.train_dataset)}")
+        # self.logger.info(f"After removing: {len(self.valid_dataset)}")
+
+        # Add weight for each sequence
+        self.logger.info("Adding weight for each sequence")
+        self.logger.info(f"Before adding: {len(self.train_dataset)}")
+        self.logger.info(f"Before adding: {len(self.valid_dataset)}")
+        self.train_dataset.add_weight()
+        self.valid_dataset.add_weight()
+        self.logger.info(f"After adding: {len(self.train_dataset)}")
+        self.logger.info(f"After adding: {len(self.valid_dataset)}")
+
+        # Create dataloader
+        self.logger.info("Creating dataloader")
+        train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                  collate_fn=self.train_dataset.collate_fn)
+        valid_loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False,
+                                  collate_fn=self.valid_dataset.collate_fn)
+        return train_loader, valid_loader

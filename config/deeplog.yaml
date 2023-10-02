@@ -23,3 +23,11 @@ topk: 9
 optimizer: adam
 adam_beta1: 0.9
 adam_beta2: 0.999
+max_epoch: 20
+
+# common configuration
+output_dir: ./output/
+resume: false
+train_size: 0.01
+valid_ratio: 0.1
+train: true
