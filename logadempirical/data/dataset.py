@@ -18,7 +18,7 @@ class BaseDataset(Dataset):
                  is_unsupervised: bool = True,
                  labels: Optional[List[int]] = None,
                  idxs: Optional[List[int]] = None,
-                 remove_duplicates: bool = True):
+                 remove_duplicates: bool = False):
         """ Base Dataset class for log data
         Parameters
         ----------
@@ -93,12 +93,12 @@ class BaseDataset(Dataset):
         raise NotImplementedError
 
     def collate_fn(self, batch):
-        raise NotImplementedError
+        return batch
 
 
 class LogDataset(BaseDataset):
     def __init__(self, sequentials=None, quantitatives=None, semantics=None, is_unsupervised=False, labels=None,
-                 idxs=None, remove_duplicates=True):
+                 idxs=None, remove_duplicates=False):
         super(LogDataset, self).__init__(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
                                          is_unsupervised=is_unsupervised, labels=labels, idxs=idxs,
                                          remove_duplicates=remove_duplicates)
@@ -118,47 +118,6 @@ class LogDataset(BaseDataset):
             item['semantic'] = torch.from_numpy(np.array(self.semantics[idx])).float()
 
         return item
-
-    # def collate_fn(self, batch, feature_name='semantic', padding_side="right"):
-    #     # pdb.set_trace()
-    #     return batch
-    #     max_length = max([len(b[feature_name]) for b in batch])
-    #     dimension = {k: batch[0][k][0].shape[0] for k in batch[0].keys() if k != 'label' and batch[0][k] is not None}
-    #     if padding_side == "right":
-    #         padded_batch = []
-    #         for b in batch:
-    #             sample = {}
-    #             for k, v in b.items():
-    #                 if k == 'label':
-    #                     sample[k] = v
-    #                 elif v is None:
-    #                     sample[k] = None
-    #                 else:
-    #                     sample[k] = torch.from_numpy(
-    #                         np.array(v + [np.zeros(dimension[k], )] * (max_length - len(v))))
-    #             padded_batch.append(sample)
-    #     elif padding_side == "left":
-    #         padded_batch = []
-    #         for b in batch:
-    #             sample = {}
-    #             for k, v in b.items():
-    #                 if k == 'label':
-    #                     sample[k] = v
-    #                 elif v is None:
-    #                     sample[k] = None
-    #                 else:
-    #                     sample[k] = torch.from_numpy(
-    #                         np.array([np.zeros(dimension[k], )] * (max_length - len(v)) + v))
-    #             padded_batch.append(sample)
-    #     else:
-    #         raise ValueError("padding_side should be either 'right' or 'left'")
-    #
-    #     # convert to tensor
-    #     padded_batch = {
-    #         k: torch.stack([sample[k] for sample in padded_batch])
-    #         for k in padded_batch[0].keys()
-    #     }
-    #     return padded_batch
 
 
 class MaskedDataset(BaseDataset):
@@ -263,42 +222,3 @@ class MaskedDataset(BaseDataset):
         output["label"] = torch.tensor(np.array(output["label"]), dtype=torch.long)
         output["idx"] = torch.tensor(np.array(output["idx"]), dtype=torch.long)
         return output
-
-# def data_collate(batch, feature_name='semantic', padding_side="right"):
-#     max_length = max([len(b[feature_name]) for b in batch])
-#     dimension = {k: batch[0][k][0].shape[0] for k in batch[0].keys() if k != 'label' and batch[0][k] is not None}
-#     if padding_side == "right":
-#         padded_batch = []
-#         for b in batch:
-#             sample = {}
-#             for k, v in b.items():
-#                 if k == 'label':
-#                     sample[k] = v
-#                 elif v is None:
-#                     sample[k] = None
-#                 else:
-#                     sample[k] = torch.from_numpy(
-#                         np.array(v + [np.zeros(dimension[k], )] * (max_length - len(v))))
-#             padded_batch.append(sample)
-#     elif padding_side == "left":
-#         padded_batch = []
-#         for b in batch:
-#             sample = {}
-#             for k, v in b.items():
-#                 if k == 'label':
-#                     sample[k] = v
-#                 elif v is None:
-#                     sample[k] = None
-#                 else:
-#                     sample[k] = torch.from_numpy(
-#                         np.array([np.zeros(dimension[k], )] * (max_length - len(v)) + v))
-#             padded_batch.append(sample)
-#     else:
-#         raise ValueError("padding_side should be either 'right' or 'left'")
-#
-#     # convert to tensor
-#     padded_batch = {
-#         k: torch.stack([sample[k] for sample in padded_batch])
-#         for k in padded_batch[0].keys()
-#     }
-#     return padded_batch

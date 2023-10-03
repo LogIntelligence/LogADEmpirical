@@ -31,3 +31,4 @@ resume: false
 train_size: 0.01
 valid_ratio: 0.1
 train: true
+remove_duplicates: true

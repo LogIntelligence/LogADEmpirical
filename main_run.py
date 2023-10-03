@@ -220,7 +220,8 @@ def train_and_eval(args: argparse.Namespace,
         valid_dataset = MaskedDataset(sequentials=sequentials, vocab=vocab, seq_len=32, idx=sequence_idxs)
     else:
         valid_dataset = LogDataset(sequentials=sequentials, quantitatives=quantitatives, semantics=semantics,
-                                   labels=labels, idxs=sequence_idxs, is_unsupervised=is_unsupervised)
+                                   labels=labels, idxs=sequence_idxs, is_unsupervised=is_unsupervised,
+                                   remove_duplicates=args.remove_duplicates)
 
     logger.info(f"Train dataset: {len(train_dataset)}")
     logger.info(f"Valid dataset: {len(valid_dataset)}")
